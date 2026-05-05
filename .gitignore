@@ -1,0 +1,22 @@
+# Build outputs
+build/
+cmake-build-*/
+.cache/
+
+# IDE / editor
+*.user
+.vs/
+.vscode/
+.idea/
+
+# Node / Vite (UI tree, added in Phase 4)
+node_modules/
+code/ui/dist/
+ui/dist/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# OS junk
+.DS_Store
+Thumbs.db

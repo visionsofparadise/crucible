@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@import "@fontsource/azeret-mono/400.css";
+@import "@fontsource/azeret-mono/500.css";
+@import "@fontsource/cherry-bomb-one/400.css";
+@import "@fontsource/covered-by-your-grace/400.css";
+@import "@fontsource/bagel-fat-one/400.css";
+@import "@fontsource/fruktur/400.css";
+@import "@fontsource/rubik-wet-paint/400.css";
+@import "@fontsource/rubik-spray-paint/400.css";
+@import "@fontsource/darumadrop-one/400.css";
+@import "@fontsource/modak/400.css";
+@import "@fontsource/unbounded/400.css";
+@import "@fontsource/ceviche-one/400.css";
+@import "@fontsource/archivo-black/400.css";
+@import "@fontsource/playfair-display/400.css";
+@import "./design-system/css/tokens.css";
+@import "./design-system/css/utilities.css";

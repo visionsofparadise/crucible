@@ -71,9 +71,17 @@ target_link_libraries(CrucibleFX PRIVATE
   juce::juce_dsp
   juce::juce_gui_extra
   juce::juce_recommended_config_flags
-  juce::juce_recommended_lto_flags
   juce::juce_recommended_warning_flags
 )
+
+# JUCE's recommended LTO sets -flto, which on Linux+Clang produces LLVM
+# bitcode that GNU ld can't link without LLVMgold.so on its plugin path.
+# macOS (ld64) and Windows (MSVC LTCG) handle their respective LTO modes
+# fine. Skip LTO on Linux; the Linux user base is small enough that the
+# LTO size/speed gain is marginal versus shipping a working CI.
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_libraries(CrucibleFX PRIVATE juce::juce_recommended_lto_flags)
+endif()
 
 # UI bundling — release builds embed the Vite output via the shared
 # `CrucibleUIData` target defined in Core/CMakeLists.txt, debug builds

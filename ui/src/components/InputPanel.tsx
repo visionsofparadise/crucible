@@ -19,11 +19,15 @@ import {
 } from '../design-system/chrome';
 import MeterRail from './MeterRail';
 import {
+  isJuceHost,
   notifyEditorBufferChange,
   requestCompileBuffer,
   requestCopyContext,
+  requestCopyToClipboard,
   requestOpen,
+  requestPaste,
   requestSaveAs,
+  subscribeClipboardPaste,
   useCompileResult,
   useInputErrors,
   useSourceChanged,
@@ -45,11 +49,24 @@ const editorTheme = EditorView.theme(
       backgroundColor: 'transparent',
       fontFamily: 'var(--font-mono)',
       lineHeight: '1.6',
+      // The scroller is a flex item in the flex-column .cm-editor; it
+      // defaults to flex-grow:0 and shrinks to content height, leaving
+      // the empty lower area outside the editable/clickable surface.
+      // Grow it to fill the fixed-height editor (minHeight:0 lets it
+      // shrink for internal scrolling when the doc overflows). Override
+      // CM's base `align-items: flex-start !important` so the content
+      // stretches to the full height and the whole surface is clickable.
+      flexGrow: 1,
+      minHeight: 0,
+      alignItems: 'stretch !important',
     },
     '.cm-content': {
       backgroundColor: 'transparent',
       caretColor: 'var(--color-accent-primary)',
       padding: '8px 0',
+      // Fill the fixed-height screen so the whole surface is editable
+      // and clickable even when the document is empty or short.
+      minHeight: '100%',
       textShadow: '0 0 7px color-mix(in srgb, var(--color-accent-primary) 22%, transparent), 0 0 4px rgba(232,227,219,0.28)',
     },
     '.cm-line': { padding: '0 12px' },
@@ -183,6 +200,19 @@ const InputPanel = () => {
     syntaxHighlighting(editorHighlight),
     lintGutter(),
     linter(() => []),
+    // Wrap long lines to the editor width — the plugin window is a fixed
+    // size and must never scroll horizontally (layout-stability rule).
+    EditorView.lineWrapping,
+    // Paste overwrites the whole buffer: this editor holds one Faust
+    // program, so a paste is "load this program", not "insert a snippet".
+    EditorView.domEventHandlers({
+      paste: (event, view) => {
+        const text = event.clipboardData?.getData('text') ?? '';
+        view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+        event.preventDefault();
+        return true;
+      },
+    }),
   ], []);
 
   const errorIconVisible = inputErrors.length > 0;
@@ -190,22 +220,31 @@ const InputPanel = () => {
     ? inputErrors[inputErrors.length - 1]?.message ?? ''
     : '';
 
+  // Overwrite the whole editor buffer. When the view exists its dispatch
+  // fires onChange (→ notify + compile); the fallback covers the rare
+  // pre-mount case.
+  const overwriteEditor = useCallback((text: string) => {
+    const view = editorRef.current?.view;
+    if (view) {
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+    } else {
+      notifyEditorBufferChange(text);
+      scheduleCompile(text);
+    }
+  }, [scheduleCompile]);
+
+  // C++ replies to a paste request through this channel.
+  useEffect(() => subscribeClipboardPaste(overwriteEditor), [overwriteEditor]);
+
   const onCopy = useCallback(() => {
+    if (isJuceHost()) { requestCopyToClipboard(localBufferRef.current); return; }
     void navigator.clipboard.writeText(localBufferRef.current);
   }, []);
 
   const onPaste = useCallback(() => {
-    void navigator.clipboard.readText().then((text) => {
-      notifyEditorBufferChange(text);
-      const view = editorRef.current?.view;
-      if (view) {
-        view.dispatch({
-          changes: { from: 0, to: view.state.doc.length, insert: text },
-        });
-      }
-      if (!view) scheduleCompile(text);
-    });
-  }, [scheduleCompile]);
+    if (isJuceHost()) { requestPaste(); return; }
+    void navigator.clipboard.readText().then(overwriteEditor);
+  }, [overwriteEditor]);
 
   const onSave = useCallback(() => { requestSaveAs(localBufferRef.current); }, []);
 

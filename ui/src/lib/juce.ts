@@ -144,6 +144,9 @@ export interface CrucibleWindowAPI {
   onSourceChanged?: (event: CrucibleSourceChanged) => void;
   onInputError?: (error: CrucibleInputError) => void;
   onMeterFrame?: (frame: CrucibleMeterFrame) => void;
+  // C++ pushes the system-clipboard text here in response to a
+  // `crucible.pasteRequest`; the editor overwrites its buffer with it.
+  onClipboardPaste?: (text: string) => void;
 }
 
 declare global {

@@ -49,6 +49,9 @@ const sourceChangedListeners = new Set<SourceChangedListener>();
 const inputErrorListeners = new Set<InputErrorListener>();
 const meterFrameListeners = new Set<MeterFrameListener>();
 
+type ClipboardPasteListener = (text: string) => void;
+const clipboardPasteListeners = new Set<ClipboardPasteListener>();
+
 // Latest values cached at module level so a freshly-mounted hook
 // returns the current state without waiting for the next message.
 let latestCompileResult: CrucibleCompileResult | null = null;
@@ -280,6 +283,10 @@ const installHostCallbacks = (): void => {
     for (const listener of inputErrorListeners) listener(activeInputErrors);
   };
 
+  api.onClipboardPaste = (text: string): void => {
+    for (const listener of clipboardPasteListeners) listener(text);
+  };
+
   api.onMeterFrame = (frame: CrucibleMeterFrame): void => {
     // Mutate in place so the ref-based subscription in `useMeterFrame`
     // doesn't allocate per tick.
@@ -310,6 +317,16 @@ const installUiClickListener = (): void => {
   const handler = (event: Event): void => {
     const backend = window.__JUCE__?.backend;
     if (!backend) return;
+    // Clicks inside the code editor (or any text field) must NOT raise/
+    // refocus the host holder window: focusPluginHolder's SetFocus moves
+    // Win32 keyboard focus off WebView2, blurring the caret WebView2 just
+    // placed — so typing and paste fail in the DAW. Let the editor keep
+    // focus; other surfaces (header, knobs) still trigger click-on-top.
+    const target = event.target;
+    if (target instanceof Element
+        && target.closest('.cm-editor, input, textarea, select, [contenteditable=""], [contenteditable="true"]') !== null) {
+      return;
+    }
     const now = event.timeStamp;
     if (now - lastEmitMs < 50) return;
     lastEmitMs = now;
@@ -718,6 +735,23 @@ export const requestSaveAs = (buffer: string): void => {
 };
 
 export const requestCopyContext = (): void => { emitEvent('crucible.copyContextRequest', {}); };
+
+// Clipboard through C++ juce::SystemClipboard rather than the browser
+// `navigator.clipboard` API, which fails in WebView2 once the click-on-
+// top handler moves Win32 focus off the webview (the copy/paste buttons
+// aren't in the editor, so their click still raises the host window).
+export const requestCopyToClipboard = (text: string): void => {
+  emitEvent('crucible.copyToClipboard', { text });
+};
+
+// Ask C++ to read the system clipboard; it replies via
+// `window.crucible.onClipboardPaste`, fanned out to subscribers.
+export const requestPaste = (): void => { emitEvent('crucible.pasteRequest', {}); };
+
+export const subscribeClipboardPaste = (listener: (text: string) => void): (() => void) => {
+  clipboardPasteListeners.add(listener);
+  return () => { clipboardPasteListeners.delete(listener); };
+};
 
 export const notifyEditorBufferChange = (buffer: string): void => {
   // Mirror the buffer into the dev cache so the SAVE / COPY paths

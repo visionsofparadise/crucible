@@ -86,6 +86,22 @@ target_link_libraries(CrucibleCore PUBLIC
   juce::juce_recommended_warning_flags
 )
 
+# The prebuilt libfaustwithllvm bundles LLVM, whose objects reference system
+# compression / xml / terminfo libraries. The Windows prebuilt resolves these
+# internally; on macOS/Linux they must be linked into the final binary. zlib is
+# required (LLVM's Compression/CRC always reference it); the rest are linked
+# only when present, since whether a given LLVM build uses them varies.
+if(NOT WIN32)
+  find_package(ZLIB REQUIRED)
+  target_link_libraries(CrucibleCore PUBLIC ZLIB::ZLIB)
+  foreach(_faust_syslib zstd xml2 ncurses tinfo)
+    find_library(FAUST_SYSLIB_${_faust_syslib} NAMES ${_faust_syslib})
+    if(FAUST_SYSLIB_${_faust_syslib})
+      target_link_libraries(CrucibleCore PUBLIC ${FAUST_SYSLIB_${_faust_syslib}})
+    endif()
+  endforeach()
+endif()
+
 # The Faust version is consumed by StdlibExtractor for the versioned
 # extraction folder name. Source it from FetchFaust.cmake's variable so
 # the two stay in sync.

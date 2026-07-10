@@ -35,7 +35,7 @@ const ControlsPanel = () => {
 
   if (!result?.schema || !result.success) {
     return (
-      <div className="bg-elevated h-[300px] max-h-[300px] overflow-y-auto scrollbar-ruler px-4 pb-3 flex items-center justify-center">
+      <div className="relative z-[1] h-[300px] max-h-[300px] overflow-y-auto scrollbar-ruler px-4 pb-3 flex items-center justify-center">
         <span className="type-label text-text-secondary">
           No source loaded — open a `.dsp` file via the INPUT toolbar.
         </span>
@@ -51,9 +51,9 @@ const ControlsPanel = () => {
     || counts.bargraph > BARGRAPH_SLOT_COUNT;
 
   return (
-    <div className="bg-elevated h-[300px] max-h-[300px] overflow-y-auto scrollbar-ruler px-4 pb-3 flex flex-col gap-2">
+    <div className="relative z-[1] h-[300px] max-h-[300px] overflow-y-auto scrollbar-ruler px-4 pt-2 pb-[14px] flex flex-col gap-2">
       {overBudget && (
-        <div className="bg-surface border border-accent-primary text-accent-primary px-3 py-2 type-label tabular-nums">
+        <div className="bg-surface border border-border text-text-secondary px-3 py-2 type-label tabular-nums">
           Some controls were not bound: this Faust source declares
           {' '}{counts.float} continuous, {counts.bool} boolean and
           {' '}{counts.bargraph} bargraph controls; Crucible's slot pool

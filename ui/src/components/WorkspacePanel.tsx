@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
-import { cn } from '../design-system/cn';
+import { MetalOverlay } from '../design-system/chrome';
+import PillButton from '../design-system/components/PillButton';
 import { useCompileResult } from '../lib/crucible-bridge';
 import ControlsPanel from './ControlsPanel';
 import DiagramPanel from './DiagramPanel';
 
 type Tab = 'controls' | 'diagram';
 
-const tabClasses = (active: boolean) =>
-  cn(
-    'type-label cursor-pointer transition-colors bg-transparent py-1 border border-transparent',
-    active ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary',
-  );
+const tabStyle = (active: boolean): React.CSSProperties => ({
+  background: 'transparent',
+  border: 'none',
+  padding: '2px 0',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  fontSize: 10,
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: active ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+});
 
 const WorkspacePanel = () => {
   const result = useCompileResult();
@@ -58,40 +65,38 @@ const WorkspacePanel = () => {
   };
 
   return (
-    <div className="flex flex-col bg-elevated">
-      <div className="flex items-center px-4 py-2 gap-2">
-        <button type="button" onClick={() => { setTab('controls'); }} className={tabClasses(tab === 'controls')}>
+    <div
+      className="relative flex flex-col bg-elevated overflow-hidden"
+      style={{ zIndex: 0, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
+    >
+      <MetalOverlay />
+      <div className="relative flex items-center" style={{ zIndex: 1, height: 44, padding: '0 16px', gap: 10 }}>
+        <button type="button" onClick={() => { setTab('controls'); }} style={tabStyle(tab === 'controls')}>
           CONTROLS
         </button>
-        <span className="type-label text-dimmed">/</span>
-        <button type="button" onClick={() => { setTab('diagram'); }} className={tabClasses(tab === 'diagram')}>
+        <span style={{ fontSize: 10, color: 'var(--color-gutter)' }}>/</span>
+        <button type="button" onClick={() => { setTab('diagram'); }} style={tabStyle(tab === 'diagram')}>
           DIAGRAM
         </button>
-        {tab === 'diagram' && (
-          <div className="ml-auto flex items-center gap-2">
-            {navStack.length > 0 && (
-              <button
-                type="button"
-                onClick={popNavigation}
-                aria-label="Up one diagram level"
-                className="flex items-center gap-1 px-2 py-1 bg-transparent border border-border text-text-secondary hover:text-text-primary hover:border-text-secondary transition-colors cursor-pointer text-[10px] uppercase tracking-[0.06em]"
+        <div className="ml-auto flex items-center" style={{ gap: 14 }}>
+          {tab === 'diagram' && (
+            <div className="flex items-center" style={{ gap: 8 }}>
+              {navStack.length > 0 && (
+                <PillButton label="UP" icon={ArrowUp} onClick={popNavigation} aria-label="Up one diagram level" />
+              )}
+              <span
+                className="tabular-nums"
+                style={{ fontFamily: 'var(--font-lcd)', fontSize: 10, color: 'var(--color-lcd-text)', textShadow: '0 0 5px rgba(154,144,136,0.4)' }}
               >
-                <ArrowUp size={12} strokeWidth={1.5} />
-                <span>UP</span>
-              </button>
-            )}
-            <span className="type-value text-[10px] text-text-secondary tabular-nums">
-              {(scale * 100).toFixed(0)}%
-            </span>
-            <button
-              type="button"
-              onClick={resetView}
-              className="px-2 py-1 bg-transparent border border-border text-text-secondary hover:text-text-primary hover:border-text-secondary transition-colors cursor-pointer text-[10px] uppercase tracking-[0.06em]"
-            >
-              RESET
-            </button>
-          </div>
-        )}
+                {(scale * 100).toFixed(0)}%
+              </span>
+              <PillButton label="RESET" onClick={resetView} />
+            </div>
+          )}
+          <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-secondary)' }}>
+            ©&nbsp;ZCROSS
+          </span>
+        </div>
       </div>
       {tab === 'controls' ? (
         <ControlsPanel />

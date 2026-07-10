@@ -1,4 +1,30 @@
-import { cn } from '../cn'
+import { cn } from '../cn';
+
+const SEG_BASE: React.CSSProperties = {
+  border: 'none',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  fontSize: 10,
+  fontVariantNumeric: 'tabular-nums',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  padding: '3px 7px',
+  borderRadius: 2,
+  transition: 'background 0.1s ease',
+};
+
+const SEG_ON: React.CSSProperties = {
+  ...SEG_BASE,
+  background: 'var(--color-accent-primary)',
+  color: 'var(--color-seg-on-text)',
+  boxShadow: '0 0 6px color-mix(in srgb, var(--color-accent-primary) 60%, transparent)',
+};
+
+const SEG_OFF: React.CSSProperties = {
+  ...SEG_BASE,
+  background: 'transparent',
+  color: 'var(--color-text-secondary)',
+};
 
 const ButtonSelection = ({
   options,
@@ -16,21 +42,25 @@ const ButtonSelection = ({
 }) => (
   <div
     ref={ref}
-    className={cn(columns ? 'grid gap-1' : 'flex flex-wrap gap-1', className)}
-    style={columns ? { gridTemplateColumns: `repeat(${columns}, 1fr)` } : undefined}
+    className={cn('grid', className)}
+    style={{
+      gap: 2,
+      gridTemplateColumns: `repeat(${String(columns ?? options.length)}, 1fr)`,
+      background: '#100E0B',
+      borderRadius: 3,
+      padding: 2,
+      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.7)',
+    }}
     {...rest}
   >
     {options.map((option) => (
       <button
         key={option}
+        type="button"
         onClick={() => onSelect?.(option)}
-        className={cn(
-          'type-label transition-colors px-2 py-1 cursor-pointer border-none',
-          option === active
-            ? 'bg-text-primary text-surface'
-            : 'bg-transparent text-text-secondary hover:text-text-primary',
-        )}
+        style={option === active ? SEG_ON : SEG_OFF}
         aria-label={option}
+        aria-pressed={option === active}
       >
         {option}
       </button>

@@ -33,6 +33,8 @@ juce::String mimeTypeForExtension (const juce::String& extWithDot)
     if (ext == ".css")   return "text/css";
     if (ext == ".svg")   return "image/svg+xml";
     if (ext == ".png")   return "image/png";
+    if (ext == ".jpg")   return "image/jpeg";
+    if (ext == ".jpeg")  return "image/jpeg";
     if (ext == ".json")  return "application/json";
     if (ext == ".woff")  return "font/woff";
     if (ext == ".woff2") return "font/woff2";

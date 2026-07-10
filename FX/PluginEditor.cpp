@@ -25,7 +25,7 @@ CrucibleFXEditor::CrucibleFXEditor (CrucibleFXProcessor& processor)
     // resized() from inside setSize, and resized() sizes the bridge to
     // fill the editor. If the bridge isn't a child yet, the inner
     // webview stays at 0×0 and renders as a black rectangle.
-    setSize (920, 760);
+    setSize (680, 744);
     setResizable (false, false);
 
     // Publish the bridge to the processor so its message-thread

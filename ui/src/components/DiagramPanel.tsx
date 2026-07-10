@@ -164,7 +164,7 @@ const DiagramPanel = ({
 
   return (
     <div
-      className="bg-elevated max-h-[300px] h-[300px] overflow-hidden cursor-grab active:cursor-grabbing relative text-text-primary"
+      className="relative z-[1] max-h-[300px] h-[300px] overflow-hidden cursor-grab active:cursor-grabbing text-text-primary"
       onWheel={onWheel}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}

@@ -16,14 +16,29 @@
   --color-meter-green: #4A7A5A;
   --color-meter-yellow: #A59A4A;
 
+  /* Design-v2 screen surfaces (CRT editor, meter rails, LCD readouts). */
+  --color-screen: #0A0806;
+  --color-meter-track: #17150F;
+  --color-lcd-text: #9A9088;
+  --color-text-bright: #F0EBE3;
+  --color-text-sub: #B8B0A6;
+  --color-gutter: #4A463F;
+  --color-seg-on-text: #140A0B;
+
   --font-mono: 'Azeret Mono', monospace;
   --font-sans: 'Azeret Mono', monospace;
-  --font-cherry-bomb: 'Cherry Bomb One', cursive;
+  --font-lcd: 'Doto', monospace;
+  --font-title: 'Pirata One', cursive;
 }
 
 @layer base {
   :root {
     color-scheme: dark;
+
+    --metal-blend: soft-light;
+    --metal-strength: 0.6;
+    --glass-blend: screen;
+    --glass-strength: 0.02;
   }
 
   .theme-light {

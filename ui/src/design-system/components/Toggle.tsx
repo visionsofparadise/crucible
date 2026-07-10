@@ -1,4 +1,5 @@
 import { cn } from '../cn';
+import { lensSurface } from '../chrome';
 
 interface ToggleProps {
   label: string;
@@ -7,20 +8,21 @@ interface ToggleProps {
   className?: string;
 }
 
-const Toggle = ({ label, on, onChange, className }: ToggleProps) => (
-  <div className={cn('flex flex-col items-center gap-2 select-none', className)}>
-    <button
-      type="button"
-      aria-pressed={on}
-      aria-label={label}
-      onClick={() => { onChange?.(!on); }}
-      className={cn(
-        'w-10 h-10 border cursor-pointer transition-colors',
-        on ? 'border-accent-primary bg-accent-primary/15' : 'border-border bg-elevated',
-      )}
-    />
-    <span className="type-label">{label}</span>
-  </div>
-);
+const Toggle = ({ label, on, onChange, className }: ToggleProps) => {
+  const surface = lensSurface(on);
+  return (
+    <div className={cn('flex flex-col items-center gap-2 select-none', className)}>
+      <button
+        type="button"
+        aria-pressed={on}
+        aria-label={label}
+        onClick={() => { onChange?.(!on); }}
+        className="cursor-pointer"
+        style={{ width: 22, height: 22, border: 'none', borderRadius: 6, background: surface.background, boxShadow: surface.boxShadow }}
+      />
+      <span className="type-control-label">{label}</span>
+    </div>
+  );
+};
 
 export default Toggle;

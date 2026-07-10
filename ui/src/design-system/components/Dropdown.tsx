@@ -13,8 +13,8 @@ const Dropdown = ({ value, options, onChange, className, ref, ...rest }: Dropdow
       ref={ref}
       type="button"
       className={cn(
-        'flex items-center gap-1 px-2 py-1 bg-elevated border border-border text-text-primary',
-        'hover:border-text-secondary transition-colors cursor-pointer',
+        'flex items-center gap-1.5 px-2.5 py-1.5 bg-transparent border border-border text-text-primary rounded-[4px]',
+        'hover:border-accent-primary transition-colors cursor-pointer',
         'text-[10px] uppercase tracking-[0.06em] tabular-nums',
         className,
       )}

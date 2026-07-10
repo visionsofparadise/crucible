@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { cn } from '../cn';
+import { lensSurface } from '../chrome';
 
 interface MomentaryProps {
   label: string;
@@ -12,6 +13,8 @@ interface MomentaryProps {
   releaseAfterMs?: number;
   className?: string;
 }
+
+const OFF_SURFACE = lensSurface(false);
 
 const Momentary = ({
   label,
@@ -34,9 +37,10 @@ const Momentary = ({
         type="button"
         aria-label={label}
         onPointerDown={handlePointerDown}
-        className="w-10 h-10 border border-border bg-elevated active:bg-accent-primary/30 active:border-accent-primary cursor-pointer transition-colors"
+        className="cursor-pointer active:translate-y-px transition-transform"
+        style={{ width: 22, height: 22, border: 'none', borderRadius: 6, background: OFF_SURFACE.background, boxShadow: OFF_SURFACE.boxShadow }}
       />
-      <span className="type-label">{label}</span>
+      <span className="type-control-label">{label}</span>
     </div>
   );
 };

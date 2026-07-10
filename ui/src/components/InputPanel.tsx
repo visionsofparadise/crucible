@@ -9,6 +9,15 @@ import type { Diagnostic } from '@codemirror/lint';
 import { tags as t } from '@lezer/highlight';
 import { AlertTriangle, FolderOpen, Save, Copy, ClipboardPaste, FileCode2 } from 'lucide-react';
 import FaustLogo from '../design-system/icons/FaustLogo';
+import PillButton from '../design-system/components/PillButton';
+import {
+  EDITOR_SPECULAR,
+  GlassScreenLayers,
+  METAL_BAND_GRADIENT,
+  MetalOverlay,
+  SCREEN_BG_SHADOW,
+} from '../design-system/chrome';
+import MeterRail from './MeterRail';
 import {
   notifyEditorBufferChange,
   requestCompileBuffer,
@@ -18,7 +27,10 @@ import {
   useCompileResult,
   useInputErrors,
   useSourceChanged,
+  useVariant,
 } from '../lib/crucible-bridge';
+
+const SELECTION = 'rgba(224,101,60,0.3)';
 
 const editorTheme = EditorView.theme(
   {
@@ -27,42 +39,46 @@ const editorTheme = EditorView.theme(
       color: 'var(--color-text-primary)',
       fontSize: '12px',
       fontFamily: 'var(--font-mono)',
+      height: '100%',
     },
     '.cm-scroller': {
       backgroundColor: 'transparent',
       fontFamily: 'var(--font-mono)',
       lineHeight: '1.6',
     },
-    '.cm-content': { backgroundColor: 'transparent', caretColor: 'var(--color-text-primary)', padding: '8px 0' },
+    '.cm-content': {
+      backgroundColor: 'transparent',
+      caretColor: 'var(--color-accent-primary)',
+      padding: '8px 0',
+      textShadow: '0 0 7px color-mix(in srgb, var(--color-accent-primary) 22%, transparent), 0 0 4px rgba(232,227,219,0.28)',
+    },
     '.cm-line': { padding: '0 12px' },
     '.cm-gutters': {
-      backgroundColor: 'var(--color-surface)',
-      color: 'var(--color-dimmed)',
-      borderRight: '1px solid var(--color-border)',
+      backgroundColor: 'transparent',
+      color: 'var(--color-gutter)',
+      borderRight: '1px solid #241F19',
       paddingRight: '4px',
     },
     '.cm-lineNumbers .cm-gutterElement': {
-      color: 'var(--color-dimmed)',
-      padding: '0 4px 0 8px',
+      color: 'var(--color-gutter)',
+      padding: '0 4px 0 10px',
       minWidth: '2ch',
       textAlign: 'right',
     },
     '.cm-activeLine': { backgroundColor: 'transparent' },
     '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--color-text-secondary)' },
-    '.cm-selectionBackground, ::selection': { backgroundColor: 'var(--color-border) !important' },
-    '&.cm-focused .cm-selectionBackground, .cm-line ::selection': {
-      backgroundColor: 'var(--color-border) !important',
-    },
+    '.cm-selectionBackground, ::selection': { backgroundColor: `${SELECTION} !important` },
+    '&.cm-focused .cm-selectionBackground, .cm-line ::selection': { backgroundColor: `${SELECTION} !important` },
     '&.cm-focused': { outline: 'none' },
     '.cm-cursor, .cm-dropCursor': {
       borderLeftColor: 'var(--color-accent-primary)',
       borderLeftWidth: '2px',
     },
     '.cm-matchingBracket, .cm-nonmatchingBracket': {
-      backgroundColor: 'var(--color-border)',
+      backgroundColor: 'transparent',
       outline: '1px solid var(--color-text-secondary)',
     },
-    '.cm-searchMatch': { backgroundColor: 'var(--color-accent-primary)', color: 'var(--color-surface)' },
+    '.cm-searchMatch': { backgroundColor: 'var(--color-accent-primary)', color: 'var(--color-screen)' },
     '.cm-panels': {
       backgroundColor: 'var(--color-elevated)',
       color: 'var(--color-text-primary)',
@@ -73,23 +89,19 @@ const editorTheme = EditorView.theme(
       color: 'var(--color-text-primary)',
       border: '1px solid var(--color-border)',
     },
-    '.cm-scroller::-webkit-scrollbar': { width: '16px', height: '16px' },
-    '.cm-scroller::-webkit-scrollbar-track': { background: 'var(--color-surface)' },
-    '.cm-scroller::-webkit-scrollbar-track:horizontal': {
-      boxShadow: 'inset 0 1px 0 0 var(--color-border)',
-    },
-    '.cm-scroller::-webkit-scrollbar-track:vertical': {
-      boxShadow: 'inset 1px 0 0 0 var(--color-border)',
-    },
-    '.cm-scroller::-webkit-scrollbar-thumb': { background: 'var(--color-dimmed)' },
-    '.cm-scroller::-webkit-scrollbar-thumb:hover': { background: 'var(--color-text-secondary)' },
-    '.cm-scroller::-webkit-scrollbar-corner': { background: 'var(--color-surface)' },
+    '.cm-scroller::-webkit-scrollbar': { width: '14px', height: '14px' },
+    '.cm-scroller::-webkit-scrollbar-track': { background: '#090806' },
+    '.cm-scroller::-webkit-scrollbar-track:horizontal': { boxShadow: 'inset 0 1px 0 0 #2A2620' },
+    '.cm-scroller::-webkit-scrollbar-track:vertical': { boxShadow: 'inset 1px 0 0 0 #2A2620' },
+    '.cm-scroller::-webkit-scrollbar-thumb': { background: '#3A3632', borderRadius: '1px' },
+    '.cm-scroller::-webkit-scrollbar-thumb:hover': { background: '#5A5550' },
+    '.cm-scroller::-webkit-scrollbar-corner': { background: '#090806' },
   },
   { dark: true },
 );
 
 const editorHighlight = HighlightStyle.define([
-  { tag: t.keyword, color: 'var(--color-accent-primary)' },
+  { tag: t.keyword, color: 'var(--color-text-primary)' },
   { tag: [t.string, t.special(t.string)], color: 'var(--color-unit-2)' },
   { tag: [t.number, t.bool, t.null], color: 'var(--color-unit-1)' },
   { tag: t.comment, color: 'var(--color-dimmed)', fontStyle: 'italic' },
@@ -100,37 +112,16 @@ const editorHighlight = HighlightStyle.define([
   { tag: t.punctuation, color: 'var(--color-text-secondary)' },
 ]);
 
-const ToolbarButton = ({ label, icon: Icon, onClick }: { label: string; icon: typeof Save; onClick?: () => void }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-label={label}
-    className="flex items-center gap-1 px-2 py-1 bg-transparent border border-border text-text-secondary hover:text-text-primary hover:border-text-secondary transition-colors cursor-pointer text-[10px] uppercase tracking-[0.06em]"
-  >
-    <Icon size={12} strokeWidth={1.5} />
-    <span>{label}</span>
-  </button>
-);
-
 const InputPanel = () => {
+  const variant = useVariant();
+  const showInputRail = variant === 'fx';
   const sourceEvent = useSourceChanged();
   const compileResult = useCompileResult();
   const inputErrors = useInputErrors();
   const editorRef = useRef<ReactCodeMirrorRef>(null);
-  // Tracks the latest buffer the user has typed locally so SAVE / COPY
-  // round-trip the unsaved edits. Initialised from the bridge's source
-  // event, replaced on every keystroke.
   const localBufferRef = useRef<string>(sourceEvent?.source ?? '');
-  // Debounce handle for the in-memory compile trigger. Reset on every
-  // keystroke; fires `requestCompileBuffer` after 400 ms of editor idle.
-  // Pairs with `notifyEditorBufferChange` (which fires every keystroke
-  // so SAVE-As / close-reopen restore see the current buffer).
   const compileDebounceRef = useRef<number | null>(null);
 
-  // The CodeMirror `value` prop drives the editor when external file
-  // writes overwrite the buffer (e.g. external editor saves while
-  // Crucible is open). Local typing updates `localBufferRef` but does
-  // not bump `value`; CodeMirror handles its own state.
   const editorValue = sourceEvent?.source ?? '';
 
   useEffect(() => {
@@ -159,9 +150,6 @@ const InputPanel = () => {
     }
   }, []);
 
-  // Push lint diagnostics on every new compile result. Empty array on
-  // success (clears markers); a single error diagnostic when the
-  // libfaust message parsed to a line:col; nothing when it didn't.
   useEffect(() => {
     const view = editorRef.current?.view;
     if (!view) return;
@@ -194,8 +182,6 @@ const InputPanel = () => {
     editorTheme,
     syntaxHighlighting(editorHighlight),
     lintGutter(),
-    // `linter(() => [])` registers the linter plumbing without any
-    // pull-mode diagnostics; we push via `setDiagnostics` instead.
     linter(() => []),
   ], []);
 
@@ -210,9 +196,6 @@ const InputPanel = () => {
 
   const onPaste = useCallback(() => {
     void navigator.clipboard.readText().then((text) => {
-      // Update the editor buffer through the bridge so external
-      // listeners (the dev cache, eventually the in-VST overwrite
-      // mechanism) see the same string.
       notifyEditorBufferChange(text);
       const view = editorRef.current?.view;
       if (view) {
@@ -220,9 +203,6 @@ const InputPanel = () => {
           changes: { from: 0, to: view.state.doc.length, insert: text },
         });
       }
-      // Dispatch above also triggers onChange (and thus scheduleCompile)
-      // when the view is present. When no view exists yet, schedule
-      // manually so the paste still compiles.
       if (!view) scheduleCompile(text);
     });
   }, [scheduleCompile]);
@@ -230,54 +210,79 @@ const InputPanel = () => {
   const onSave = useCallback(() => { requestSaveAs(localBufferRef.current); }, []);
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-2 bg-elevated border-b border-border">
-        <span className="type-label">INPUT</span>
+    <>
+      <div
+        className="relative flex items-center overflow-hidden"
+        style={{
+          height: 38,
+          gap: 8,
+          padding: '0 16px',
+          background: METAL_BAND_GRADIENT,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+          zIndex: 0,
+        }}
+      >
+        <MetalOverlay />
+        <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-secondary)' }}>
+          INPUT
+        </span>
         {errorIconVisible && (
           <span
             title={tooltipMessage}
             aria-label={`Input error: ${tooltipMessage}`}
-            className="inline-flex items-center text-accent-primary"
+            className="inline-flex items-center"
+            style={{ color: 'var(--color-accent-primary)', filter: 'drop-shadow(0 0 4px color-mix(in srgb, var(--color-accent-primary) 60%, transparent))' }}
           >
             <AlertTriangle size={12} strokeWidth={1.75} />
           </span>
         )}
-        <div className="ml-auto flex items-center gap-1">
-          <ToolbarButton label="COPY CONTEXT" icon={FileCode2} onClick={requestCopyContext} />
-          <ToolbarButton label="OPEN" icon={FolderOpen} onClick={requestOpen} />
-          <ToolbarButton label="SAVE" icon={Save} onClick={onSave} />
-          <ToolbarButton label="COPY" icon={Copy} onClick={onCopy} />
-          <ToolbarButton label="PASTE" icon={ClipboardPaste} onClick={onPaste} />
+        <div className="ml-auto flex items-center" style={{ gap: 5 }}>
+          <PillButton label="COPY CONTEXT" icon={FileCode2} onClick={requestCopyContext} />
+          <PillButton label="OPEN" icon={FolderOpen} onClick={requestOpen} />
+          <PillButton label="SAVE" icon={Save} onClick={onSave} />
+          <PillButton label="COPY" icon={Copy} onClick={onCopy} />
+          <PillButton label="PASTE" icon={ClipboardPaste} onClick={onPaste} />
         </div>
       </div>
-      <div className="bg-surface relative overflow-hidden">
-        <CodeMirror
-          ref={editorRef}
-          value={editorValue}
-          onChange={onChange}
-          extensions={extensions}
-          basicSetup={{
-            lineNumbers: true,
-            foldGutter: false,
-            highlightActiveLine: false,
-            highlightActiveLineGutter: false,
-          }}
-          height="300px"
-          minHeight="300px"
-          maxHeight="300px"
-        />
-        <a
-          href="https://faustdoc.grame.fr/manual/quick-start/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Faust documentation"
-          className="absolute z-10 text-text-secondary opacity-30 cursor-pointer"
-          style={{ right: 16, bottom: 12 }}
+
+      <div className="flex items-stretch" style={{ height: 296 }}>
+        {showInputRail && <MeterRail side="in" />}
+        <div
+          className="relative flex-1 min-w-0 overflow-hidden"
+          style={{ background: 'var(--color-screen)', boxShadow: SCREEN_BG_SHADOW, zIndex: 0 }}
         >
-          <FaustLogo height={24} />
-        </a>
+          <GlassScreenLayers specular={EDITOR_SPECULAR} />
+          <div className="relative h-full" style={{ zIndex: 1 }}>
+            <CodeMirror
+              ref={editorRef}
+              value={editorValue}
+              onChange={onChange}
+              extensions={extensions}
+              basicSetup={{
+                lineNumbers: true,
+                foldGutter: false,
+                highlightActiveLine: false,
+                highlightActiveLineGutter: false,
+              }}
+              height="296px"
+              minHeight="296px"
+              maxHeight="296px"
+            />
+          </div>
+          <a
+            href="https://faustdoc.grame.fr/manual/quick-start/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Faust documentation"
+            className="absolute cursor-pointer"
+            style={{ right: 16, bottom: 12, zIndex: 4, opacity: 0.3, lineHeight: 0, color: 'var(--color-text-secondary)' }}
+          >
+            <FaustLogo height={24} />
+          </a>
+        </div>
+        <MeterRail side="out" />
       </div>
-    </div>
+    </>
   );
 };
 

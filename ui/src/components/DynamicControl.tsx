@@ -7,6 +7,7 @@ import Toggle from '../design-system/components/Toggle';
 import Momentary from '../design-system/components/Momentary';
 import type { CrucibleControlSchema } from '../lib/juce';
 import { readBargraphSlot, useBoolSlot, useFloatSlot, useMeterFrame } from '../lib/crucible-bridge';
+import { formatDb } from '../lib/db';
 
 // Slot id helpers — `slot.f.012` → 12. Returns -1 if the id is empty
 // (over-budget control, unbound).
@@ -105,7 +106,6 @@ const FloatKnobControl = ({ control }: { control: CrucibleControlSchema }) => {
       label={control.label}
       value={value}
       display={display}
-      displayWidth={Math.max(display.length, 4)}
       onChange={index < 0 ? undefined : slot.setValue}
       defaultValue={normaliseFromValue(control, control.init)}
     />
@@ -131,7 +131,7 @@ const DropdownControl = ({
           slot.setValue(normaliseFromValue(control, option.value));
         }}
       />
-      <span className="type-label">{control.label}</span>
+      <span className="type-control-label">{control.label}</span>
     </div>
   );
 };
@@ -155,7 +155,7 @@ const RadioControl = ({
           slot.setValue(normaliseFromValue(control, option.value));
         }}
       />
-      <span className="type-label">{control.label}</span>
+      <span className="type-control-label">{control.label}</span>
     </div>
   );
 };
@@ -200,7 +200,7 @@ const HBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
       }
       if (peakLabelRef.current) {
         peakLabelRef.current.textContent = control.meta.unit === 'dB'
-          ? (20 * Math.log10(Math.max(value, 1e-6))).toFixed(1)
+          ? formatDb(value)
           : value.toFixed(2);
       }
       raf = window.requestAnimationFrame(tick);
@@ -210,10 +210,16 @@ const HBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
   }, [control.slotId, control.meta.unit, frameRef]);
 
   return (
-    <div className="flex flex-col items-center gap-2 select-none w-[120px]">
-      <span ref={peakLabelRef} className="type-label tabular-nums text-center">--</span>
-      <Meter level={0} barRef={barRef} orientation="horizontal" width="100%" height={4} />
-      <span className="type-label">{control.label}</span>
+    <div className="flex flex-col items-center gap-2 select-none w-[150px]">
+      <span
+        ref={peakLabelRef}
+        className="text-center tabular-nums"
+        style={{ fontFamily: 'var(--font-lcd)', fontWeight: 600, fontSize: 11, color: 'var(--color-lcd-text)', textShadow: '0 0 5px rgba(154,144,136,0.45)' }}
+      >
+        --
+      </span>
+      <Meter level={0} barRef={barRef} orientation="horizontal" width="100%" height={7} />
+      <span className="type-control-label">{control.label}</span>
     </div>
   );
 };
@@ -237,8 +243,8 @@ const VBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
 
   return (
     <div className="flex flex-col items-center gap-2 select-none">
-      <Meter level={0} barRef={barRef} orientation="vertical" width={6} height={80} />
-      <span className="type-label">{control.label}</span>
+      <Meter level={0} barRef={barRef} orientation="vertical" width={7} height={80} />
+      <span className="type-control-label">{control.label}</span>
     </div>
   );
 };

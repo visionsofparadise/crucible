@@ -6,11 +6,8 @@ interface KnobProps extends Omit<React.ComponentPropsWithRef<'div'>, 'onChange'>
   label: string;
   size?: number;
   onChange?: (v: number) => void;
-  overridden?: boolean;
   /** Optional override for the value display. Defaults to `Math.round(value * 100)`. */
   display?: string;
-  /** Fixed character width for the value display, prevents jitter when display strings vary in length. */
-  displayWidth?: number;
   /** Pixels of vertical drag covering the full 0..1 range. Larger = finer control. Default 150. */
   sensitivity?: number;
   /**
@@ -26,11 +23,9 @@ interface KnobProps extends Omit<React.ComponentPropsWithRef<'div'>, 'onChange'>
 const Knob = ({
   value,
   label,
-  size = 40,
+  size = 24,
   onChange,
-  overridden = false,
   display,
-  displayWidth,
   sensitivity = 150,
   defaultValue,
   className,
@@ -65,7 +60,7 @@ const Knob = ({
     const ep = polarToCartesian(end);
     const largeArc = sweep > 180 ? 1 : 0;
 
-    return `M ${sp.x} ${sp.y} A ${radius} ${radius} 0 ${largeArc} 1 ${ep.x} ${ep.y}`;
+    return `M ${sp.x.toFixed(2)} ${sp.y.toFixed(2)} A ${radius} ${radius} 0 ${largeArc} 1 ${ep.x.toFixed(2)} ${ep.y.toFixed(2)}`;
   };
 
   const onPointerDown = useCallback(
@@ -98,11 +93,19 @@ const Knob = ({
     onChange(Math.max(0, Math.min(1, defaultValue)));
   }, [onChange, defaultValue]);
 
+  const trackPath = arcPath(startAngle, totalSweep);
+
   return (
-    <div ref={ref} className={cn('flex flex-col items-center gap-1 select-none', className)} {...rest}>
+    <div ref={ref} className={cn('flex flex-col items-center select-none', className)} style={{ gap: 5 }} {...rest}>
       <span
-        className="type-label tabular-nums text-center"
-        style={displayWidth ? { display: 'inline-block', width: `${String(displayWidth)}ch` } : undefined}
+        className="text-center tabular-nums"
+        style={{
+          display: 'inline-block',
+          minWidth: '7ch',
+          fontSize: 10,
+          letterSpacing: '0.04em',
+          color: 'var(--color-text-primary)',
+        }}
       >
         {display ?? Math.round(value * 100)}
       </span>
@@ -110,30 +113,20 @@ const Knob = ({
         ref={svgRef}
         width={size}
         height={size}
+        viewBox={`0 0 ${String(size)} ${String(size)}`}
         className={onChange ? 'cursor-pointer' : undefined}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onDoubleClick={onDoubleClick}
       >
-        <path
-          d={arcPath(startAngle, totalSweep)}
-          fill="none"
-          stroke="var(--color-dimmed)"
-          strokeWidth={2}
-          strokeLinecap="butt"
-        />
+        <path d={trackPath} transform="translate(0 1)" fill="none" stroke="#ffffff" strokeOpacity={0.08} strokeWidth={1.5} strokeLinecap="butt" />
+        <path d={trackPath} fill="none" stroke="#100E0B" strokeWidth={1.5} strokeLinecap="butt" />
         {valueSweep > 0 && (
-          <path
-            d={arcPath(startAngle, valueSweep)}
-            fill="none"
-            stroke={overridden ? 'var(--color-accent-primary)' : 'var(--color-text-primary)'}
-            strokeWidth={2}
-            strokeLinecap="butt"
-          />
+          <path d={arcPath(startAngle, valueSweep)} fill="none" stroke="#E8E3DB" strokeWidth={1.5} strokeLinecap="butt" />
         )}
       </svg>
-      {label !== '' && <span className="type-label">{label}</span>}
+      {label !== '' && <span className="type-control-label">{label}</span>}
     </div>
   );
 };

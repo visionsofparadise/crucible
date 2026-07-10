@@ -406,8 +406,8 @@ const isInEditor = (target: EventTarget | null): boolean => {
 const isClipboardShortcut = (event: KeyboardEvent): boolean => {
   if (!(event.ctrlKey || event.metaKey)) return false;
   if (event.altKey) return false;
-  const k = event.key.toLowerCase();
-  return k === 'c' || k === 'v' || k === 'x' || k === 'a' || k === 'z' || k === 'y';
+  const key = event.key.toLowerCase();
+  return key === 'c' || key === 'v' || key === 'x' || key === 'a' || key === 'z' || key === 'y';
 };
 
 let keyForwarderInstalled = false;

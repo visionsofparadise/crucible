@@ -94,6 +94,17 @@ struct FaustRuntime::Impl
             delete currentMap;
             currentMap = nullptr;
         }
+        // Factories are freed AFTER every instance that depends on them,
+        // and the retired factories must be drained too — not just the
+        // current one. Each successful recompile pushes the superseded
+        // factory onto `retiredFactories`; leaking them keeps libfaust's
+        // global factory registry populated until process exit, where
+        // static-destruction order can lock an already-destroyed
+        // recursive_mutex inside libfaust/LLVM (libc++ traps this as a
+        // fatal `recursive_mutex lock failed`; other stdlibs mask it).
+        for (auto* f : retiredFactories)
+            deleteDSPFactory (f);
+        retiredFactories.clear();
         if (currentFactory != nullptr)
         {
             deleteDSPFactory (currentFactory);

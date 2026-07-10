@@ -8,6 +8,7 @@ import Momentary from '../design-system/components/Momentary';
 import type { CrucibleControlSchema } from '../lib/juce';
 import { readBargraphSlot, useBoolSlot, useFloatSlot, useMeterFrame } from '../lib/crucible-bridge';
 import { formatDb } from '../lib/db';
+import { formatDisplay } from '../lib/format';
 
 // Slot id helpers — `slot.f.012` → 12. Returns -1 if the id is empty
 // (over-budget control, unbound).
@@ -76,19 +77,6 @@ const normaliseFromValue = (control: CrucibleControlSchema, value: number): numb
   const range = control.max - control.min;
   if (range <= 0) return 0;
   return Math.max(0, Math.min(1, (value - control.min) / range));
-};
-
-const formatDisplay = (control: CrucibleControlSchema, normalised: number): string => {
-  const range = control.max - control.min;
-  const denormalised = control.min + normalised * range;
-  const unit = control.meta.unit;
-  if (Math.abs(denormalised) >= 1000) {
-    return `${(denormalised / 1000).toFixed(1)}k${unit ? '' : ''}`;
-  }
-  if (Number.isInteger(control.step) && control.step >= 1) {
-    return `${Math.round(denormalised).toString()}${unit ? ` ${unit}` : ''}`;
-  }
-  return `${denormalised.toFixed(2)}${unit ? ` ${unit}` : ''}`;
 };
 
 // Per-leaf component. Each renders its own primitive bound to the

@@ -186,13 +186,25 @@ public:
 
     bool pageAboutToLoad (const juce::String& newURL) override
     {
+        // A same-origin navigation to a `.svg` is a Faust diagram
+        // hyperlink that escaped the in-webview drill-in interceptor.
+        // It resolves to no served resource and would replace the React
+        // app with a failed-load error page. Cancel silently — the UI
+        // de-links these anchors, so this only fires as a backstop.
+        const auto providerRoot = juce::WebBrowserComponent::getResourceProviderRoot();
+        if ((newURL.startsWith (providerRoot) || newURL.startsWith ("http://localhost:5173"))
+            && newURL.endsWithIgnoreCase (".svg"))
+        {
+            return false;
+        }
+
         // Allow the initial blank/about page that JUCE may use
         // internally, and any URL under our own origin / dev server.
         if (newURL.isEmpty()
             || newURL.startsWith ("about:")
             || newURL.startsWith ("data:")
-            || newURL == juce::WebBrowserComponent::getResourceProviderRoot()
-            || newURL.startsWith (juce::WebBrowserComponent::getResourceProviderRoot())
+            || newURL == providerRoot
+            || newURL.startsWith (providerRoot)
             || newURL.startsWith ("http://localhost:5173"))
         {
             return true;
@@ -583,6 +595,37 @@ WebviewBridge::WebviewBridge (juce::AudioProcessorValueTreeState& apvtsIn,
         [] (juce::var)
         {
             juce::SystemClipboard::copyTextToClipboard (getCopyContextDocument());
+        });
+
+    // COPY — write the editor buffer to the system clipboard through
+    // JUCE rather than the webview's `navigator.clipboard`, which fails
+    // in WebView2 after the click-on-top handler moves focus off the
+    // webview on the (non-editor) button click.
+    options = options.withEventListener (juce::Identifier ("crucible.copyToClipboard"),
+        [] (juce::var data)
+        {
+            juce::String text;
+            if (data.isObject())
+                text = data.getProperty ("text", juce::var()).toString();
+            else if (data.isString())
+                text = data.toString();
+            juce::SystemClipboard::copyTextToClipboard (text);
+        });
+
+    // PASTE — read the system clipboard and push it back to JS, which
+    // overwrites the editor buffer. Request/response because the webview
+    // clipboard-read API is unavailable once focus leaves the webview.
+    options = options.withEventListener (juce::Identifier ("crucible.pasteRequest"),
+        [this] (juce::var)
+        {
+            if (webView == nullptr)
+                return;
+            const auto text = juce::SystemClipboard::getTextFromClipboard();
+            const auto json = juce::JSON::toString (juce::var (text), true);
+            webView->evaluateJavascript (
+                "window.crucible && window.crucible.onClipboardPaste && window.crucible.onClipboardPaste("
+                + json + ");",
+                {});
         });
 
     // diagramNavigate — handled in-webview (drill into a Faust SVG

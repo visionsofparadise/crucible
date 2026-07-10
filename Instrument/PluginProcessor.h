@@ -42,7 +42,7 @@ public:
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
-    void processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override;
+    void processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer) override;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
@@ -78,7 +78,7 @@ public:
     // putting MidiBridge first, FaustRuntime (and its poly) destruct
     // first, while the bridge — and the MidiUI the poly references —
     // is still live.
-    crucible::MidiBridge   midi;
+    crucible::MidiBridge   midiBridge;
 
     // Construction order: apvts → runtime → loader → bridge (depends on
     // both apvts and runtime).

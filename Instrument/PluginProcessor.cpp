@@ -40,7 +40,7 @@ CrucibleInstrumentProcessor::CrucibleInstrumentProcessor()
     : juce::AudioProcessor (BusesProperties()
         .withOutput ("Output", juce::AudioChannelSet::stereo(), true))
     , apvts (*this, nullptr, "Crucible", crucible::makeSlotPoolLayout())
-    , midi()
+    , midiBridge()
     , runtime()
     , loader()
     , bridge (apvts, runtime)
@@ -89,11 +89,11 @@ CrucibleInstrumentProcessor::CrucibleInstrumentProcessor()
                 // worker has already performed the atomic swap, so
                 // `getCurrentDsp` / `getCurrentMidi` return the new
                 // instance and its (poly-only) MIDI interface.
-                midi.bind (runtime.getCurrentDsp(), runtime.getCurrentMidi());
+                midiBridge.bind (runtime.getCurrentDsp(), runtime.getCurrentMidi());
 
                 setLatencySamples (result.latencySamples);
                 runtime.drainDeletions();
-                midi.drainRetired();
+                midiBridge.drainRetired();
             }
 
             // Cache the result so a newly-opened editor can replay
@@ -140,7 +140,7 @@ CrucibleInstrumentProcessor::~CrucibleInstrumentProcessor()
     // remove itself. Member-destruction order is FaustRuntime → ...
     // → MidiBridge (see PluginProcessor.h's member-order comment),
     // which keeps the MidiUI alive until after the poly is gone.
-    midi.bind (nullptr, nullptr);
+    midiBridge.bind (nullptr, nullptr);
 }
 
 void CrucibleInstrumentProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
@@ -204,7 +204,7 @@ void CrucibleInstrumentProcessor::processBlock (juce::AudioBuffer<float>& buffer
     // Dispatch incoming MIDI into the libfaust MidiUI BEFORE the runtime
     // processes audio so the new zone values (driven by CC / keyOn /
     // etc.) take effect within this block.
-    midi.process (midiBuffer);
+    midiBridge.process (midiBuffer);
 
     const int dspOuts = runtime.currentNumOutputs();
 

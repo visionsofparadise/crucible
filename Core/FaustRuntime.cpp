@@ -85,6 +85,7 @@ struct FaustRuntime::Impl
         if (auto* d = currentInstance.exchange (nullptr))
             delete d;
         currentVoiceGroup = nullptr;
+        currentMidi       = nullptr;
         for (auto* d : retired)
             delete d;
         retired.clear();
@@ -225,8 +226,11 @@ struct FaustRuntime::Impl
         // pointer, `dynamic_cast<midi_interface*>` succeeds and the
         // wrapper registers itself for note routing — that's the whole
         // point of this wrapping.
-        ::dsp* dsp = (polyphonySnapshot > 0)
-            ? static_cast<::dsp*> (new mydsp_poly (base, polyphonySnapshot, /*control=*/true, /*group=*/true))
+        mydsp_poly* poly = (polyphonySnapshot > 0)
+            ? new mydsp_poly (base, polyphonySnapshot, /*control=*/true, /*group=*/true)
+            : nullptr;
+        ::dsp* dsp = (poly != nullptr)
+            ? static_cast<::dsp*> (poly)
             : static_cast<::dsp*> (base);
 
         const int initSr = (sr > 0.0) ? static_cast<int> (sr) : 48000;
@@ -361,10 +365,22 @@ struct FaustRuntime::Impl
             }
             currentMap = zoneMap;
             // Cache the voice-group base so `setZone` can fan out
-            // grouped-control writes to every voice. dynamic_cast yields
-            // nullptr in the monophonic case (plain llvm_dsp does not
-            // derive from dsp_voice_group); setZone then skips fan-out.
-            currentVoiceGroup = dynamic_cast<dsp_voice_group*> (dsp);
+            // grouped-control writes to every voice, and the `::midi`
+            // base so `MidiBridge` can dispatch note events to the voice
+            // allocator. Both are implicit upcasts of the `mydsp_poly`
+            // wrapper we built above — statically known, no RTTI. They
+            // stay nullptr in the monophonic case (plain llvm_dsp is
+            // neither a dsp_voice_group nor a midi), which makes setZone
+            // skip fan-out and MidiBridge skip poly dispatch.
+            //
+            // These MUST NOT use dynamic_cast: Faust's prebuilt archive
+            // compiles the llvm_dsp TU with RTTI disabled on macOS/Linux
+            // (LLVM's default), so its vtable carries a null type_info
+            // slot; a dynamic_cast on an llvm_dsp instance dereferences
+            // that null and crashes under Clang. MSVC's prebuilt keeps
+            // RTTI, which is why the cast only ever worked on Windows.
+            currentVoiceGroup = poly;
+            currentMidi       = poly;
             if (currentFactory != nullptr)
             {
                 // Defer factory deletion until after instance retire
@@ -446,6 +462,14 @@ struct FaustRuntime::Impl
     // to `currentInstance` — refreshed in compileOne, cleared when no
     // instance is installed.
     dsp_voice_group*       currentVoiceGroup = nullptr;
+    // Non-owning `::midi` interface of the current instance when it is
+    // polyphonic (an implicit upcast of the `mydsp_poly` wrapper); the
+    // event target MidiBridge dispatches note/CC events into. nullptr in
+    // the monophonic case. Set statically in compileOne (no RTTI —
+    // see the swap block for why dynamic_cast is unsafe here). Lifetime
+    // tied to `currentInstance`; refreshed on compile, cleared on
+    // teardown.
+    ::midi*                currentMidi = nullptr;
     juce::File             currentSvgDir;
     // Polyphony setting; 0 = monophonic (current behaviour). Mutated
     // via setPolyphony under the runtime mutex; snapshotted in
@@ -605,6 +629,16 @@ float* FaustRuntime::getZonePointer (const std::string& address) const
     // mutex because the instance pointer's lifetime is governed by the
     // retire-on-compile + drainDeletions contract (see header).
     return impl->currentInstance.load (std::memory_order_acquire);
+}
+
+::midi* FaustRuntime::getCurrentMidi() const
+{
+    // Message-thread only. Guarded by the mutex to pair with the swap
+    // write in compileOne. Lifetime matches getCurrentDsp (retire-on-
+    // compile + drainDeletions). nullptr when the current instance is
+    // monophonic.
+    std::lock_guard<std::mutex> lock (impl->mutex);
+    return impl->currentMidi;
 }
 
 bool FaustRuntime::waitForIdle (int timeoutMs)

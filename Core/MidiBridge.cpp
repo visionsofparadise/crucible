@@ -87,7 +87,7 @@ MidiBridge::~MidiBridge()
     impl->live.reset();
 }
 
-void MidiBridge::bind (::dsp* dsp)
+void MidiBridge::bind (::dsp* dsp, ::midi* midiInterface)
 {
     // Build a fresh Bound: a new MidiUI for the [midi:...] declarative
     // mappings plus a non-owning pointer to the DSP's `midi` interface
@@ -104,11 +104,12 @@ void MidiBridge::bind (::dsp* dsp)
         // dispatch but the walk is still required for the declarative
         // mapping side.
         dsp->buildUserInterface (next->ui.get());
-        // Direct dispatch target. `mydsp_poly` inherits `dsp_poly`
-        // which inherits `midi`; plain `llvm_dsp` does not, in which
-        // case `dynamic_cast` returns nullptr and only the MidiUI
-        // declarative path runs.
-        next->polyMidi = dynamic_cast<::midi*> (dsp);
+        // Direct dispatch target, supplied by the caller. Non-null only
+        // for a polyphonic (`mydsp_poly`) instance — the runtime knows
+        // the wrapper type statically and upcasts to `::midi` without
+        // RTTI; for a monophonic `llvm_dsp` this is nullptr and only the
+        // MidiUI declarative path runs.
+        next->polyMidi = midiInterface;
     }
 
     // Atomically publish the new pointer.

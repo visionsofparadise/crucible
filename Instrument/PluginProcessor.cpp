@@ -87,8 +87,9 @@ CrucibleInstrumentProcessor::CrucibleInstrumentProcessor()
                 // installed DSP so its `[midi:...]` mappings declared
                 // in the Faust source are picked up. The runtime's
                 // worker has already performed the atomic swap, so
-                // `getCurrentDsp` returns the new instance.
-                midi.bind (runtime.getCurrentDsp());
+                // `getCurrentDsp` / `getCurrentMidi` return the new
+                // instance and its (poly-only) MIDI interface.
+                midi.bind (runtime.getCurrentDsp(), runtime.getCurrentMidi());
 
                 setLatencySamples (result.latencySamples);
                 runtime.drainDeletions();
@@ -139,7 +140,7 @@ CrucibleInstrumentProcessor::~CrucibleInstrumentProcessor()
     // remove itself. Member-destruction order is FaustRuntime → ...
     // → MidiBridge (see PluginProcessor.h's member-order comment),
     // which keeps the MidiUI alive until after the poly is gone.
-    midi.bind (nullptr);
+    midi.bind (nullptr, nullptr);
 }
 
 void CrucibleInstrumentProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)

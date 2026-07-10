@@ -19,6 +19,10 @@
 class dsp;
 class llvm_dsp;
 class llvm_dsp_factory;
+// libfaust's MIDI event interface (`faust/midi/midi.h`). A polyphonic
+// instance (`mydsp_poly`) implements it; a monophonic `llvm_dsp` does
+// not. Exposed via `getCurrentMidi` for `MidiBridge` to bind against.
+class midi;
 
 namespace crucible {
 
@@ -178,6 +182,15 @@ public:
     // `MidiBridge::bind` to walk `dsp->buildUserInterface(midiUI)` and
     // register the source's `[midi:...]` mappings.
     ::dsp* getCurrentDsp() const;
+
+    // MESSAGE THREAD only. The current instance's libfaust `::midi`
+    // interface when it is polyphonic (an `mydsp_poly` wrapper), or
+    // nullptr when monophonic. Passed to `MidiBridge::bind` so note/CC
+    // events reach the voice allocator. The type is known statically at
+    // wrap time (no RTTI — Faust's prebuilt archive ships llvm_dsp
+    // without RTTI on macOS/Linux, so dynamic_cast on it crashes under
+    // Clang). Lifetime matches `getCurrentDsp`.
+    ::midi* getCurrentMidi() const;
 
     // Wait for the current submission's compile to finish. Returns
     // immediately if nothing is pending. Returns true if a compile

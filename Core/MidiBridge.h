@@ -4,11 +4,14 @@
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
-// Global-namespace forward declaration. The DSP we bind to may be a
+// Global-namespace forward declarations. The DSP we bind to may be a
 // plain `llvm_dsp` (monophonic) or an `mydsp_poly` wrapper; both
 // implement the `::dsp` virtual interface and can be passed to
-// `MidiUI::buildUserInterface`.
+// `MidiUI::buildUserInterface`. `::midi` is the poly wrapper's MIDI
+// event interface, passed in alongside the dsp (the caller knows the
+// type statically — see FaustRuntime::getCurrentMidi).
 class dsp;
+class midi;
 
 namespace crucible {
 
@@ -52,8 +55,15 @@ public:
     // source, and atomically publishes the new MidiUI pointer. The
     // previous MidiUI is retired (freed on the next `drainRetired`).
     //
-    // Passing nullptr unbinds — useful on processor teardown.
-    void bind (::dsp* dsp);
+    // `midiInterface` is the DSP's libfaust `::midi` interface for
+    // direct note/CC dispatch to the voice allocator — non-null only
+    // when the instance is polyphonic; pass nullptr for a monophonic
+    // instance (`FaustRuntime::getCurrentMidi` supplies the right value
+    // statically, avoiding an RTTI cast that crashes on Faust's
+    // no-RTTI prebuilt under Clang).
+    //
+    // Passing (nullptr, nullptr) unbinds — useful on processor teardown.
+    void bind (::dsp* dsp, ::midi* midiInterface);
 
     // AUDIO THREAD. Decode the JUCE MidiBuffer into the bound MidiUI's
     // event API. Safe to call when no MidiUI is bound — events are

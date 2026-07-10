@@ -87,7 +87,7 @@ TEST_CASE ("MidiBridge drives a [midi:keyon] mapping through to the Faust zone",
         REQUIRE_FALSE (velAddress.empty());
     }
 
-    midi.bind (runtime.getCurrentDsp());
+    midi.bind (runtime.getCurrentDsp(), runtime.getCurrentMidi());
 
     // Construct a JUCE MidiBuffer with a single noteOn (channel 1, note
     // 60, velocity 100). MidiBridge::process should translate this into
@@ -102,7 +102,7 @@ TEST_CASE ("MidiBridge drives a [midi:keyon] mapping through to the Faust zone",
     const float v1 = runtime.getZone (velAddress);
     REQUIRE (v1 == 100.0f);
 
-    midi.bind (nullptr);
+    midi.bind (nullptr, nullptr);
     midi.drainRetired();
 }
 

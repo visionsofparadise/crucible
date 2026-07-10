@@ -104,7 +104,7 @@ struct FaustRuntime::Impl
         if (currentSvgDir != juce::File())
         {
             currentSvgDir.deleteRecursively();
-            currentSvgDir = {};
+            currentSvgDir = juce::File();
         }
     }
 

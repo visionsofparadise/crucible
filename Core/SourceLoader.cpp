@@ -183,7 +183,7 @@ void SourceLoader::requestSave (const juce::String& bufferContents,
             impl->currentPath = file;
             // Reset the baseline so the next poll observes the change.
             impl->seenExists      = false;
-            impl->lastFingerprint = {};
+            impl->lastFingerprint = Fingerprint{};
             impl->activeChooser.reset();
         });
 }
@@ -197,7 +197,7 @@ void SourceLoader::restorePath (const juce::File& path)
 {
     impl->currentPath = path;
     impl->seenExists      = false;
-    impl->lastFingerprint = {};
+    impl->lastFingerprint = Fingerprint{};
 
     if (path == juce::File())
         return;

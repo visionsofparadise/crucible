@@ -45,7 +45,13 @@ target_compile_features(crucible_tests PRIVATE cxx_std_17)
 target_compile_definitions(crucible_tests PRIVATE
   JUCE_STANDALONE_APPLICATION=1
   JUCE_USE_CURL=0
-  JUCE_WEB_BROWSER=0)
+  JUCE_WEB_BROWSER=0
+  # Enables MessageManager::runDispatchLoopUntil for the message-loop
+  # integration test (test_source_loader). Test-target only; no plugin
+  # or product code is affected. runDispatchLoop() alone returns early
+  # on macOS's headless run loop, so the SourceLoader watcher test pumps
+  # in bounded slices instead.
+  JUCE_MODAL_LOOPS_PERMITTED=1)
 
 include(CTest)
 include(Catch)

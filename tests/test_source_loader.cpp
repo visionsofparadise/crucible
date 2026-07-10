@@ -169,7 +169,10 @@ namespace
         {
             stage = Stage::Done;
             stopTimer();
-            juce::MessageManager::getInstance()->stopDispatchLoop();
+            // The test thread pumps the loop in bounded slices via
+            // runDispatchLoopUntil and exits when `stage` reaches Done;
+            // no stopDispatchLoop() (whose one-shot semantics vary by
+            // platform and would poison later pumps).
         }
     };
 }
@@ -231,10 +234,20 @@ TEST_CASE ("SourceLoader emits on external content changes and missing files",
     driver.lastSource      = &lastSource;
     driver.start();
 
-    // Block on the message loop. The Driver progresses through stages
-    // on the message thread and calls stopDispatchLoop() when the
-    // scenario completes (success or timeout).
-    juce::MessageManager::getInstance()->runDispatchLoop();
+    // Pump the message loop in bounded slices until the Driver's state
+    // machine reaches Done (it calls finish() on success or per-stage
+    // timeout) or a hard deadline elapses. runDispatchLoopUntil (enabled
+    // via JUCE_MODAL_LOOPS_PERMITTED on the test target) re-enters the
+    // loop each slice, so it drives the timers reliably on every
+    // platform — unlike a single runDispatchLoop(), which returns early
+    // on macOS's headless run loop and leaves the scenario unfinished.
+    auto* mm = juce::MessageManager::getInstance();
+    const auto hardDeadlineMs = juce::Time::getMillisecondCounter() + 15000;
+    while (driver.stage != Stage::Done
+           && juce::Time::getMillisecondCounter() < hardDeadlineMs)
+    {
+        mm->runDispatchLoopUntil (50);
+    }
 
     REQUIRE (driver.updateSeen.load());
     REQUIRE (driver.missingSeen.load());

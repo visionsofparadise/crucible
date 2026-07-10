@@ -6,6 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# CrucibleCore (and the JUCE module TUs compiled into it) is a STATIC library
+# linked into the shared VST3 .so. On Linux that requires position-independent
+# code; without it ld rejects R_X86_64_TPOFF32 relocations. No-op on Windows,
+# default on macOS.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Phase 3 CRT decision (option 2): Faust 2.85.5's Windows prebuilt
 # libfaustwithllvm.lib is built with the release CRT (/MD,
 # _ITERATOR_DEBUG_LEVEL=0). To allow Debug builds of Crucible to link

@@ -29,7 +29,7 @@ add_executable(crucible_tests
 target_include_directories(crucible_tests PRIVATE ../Core)
 
 target_link_libraries(crucible_tests PRIVATE
-  Catch2::Catch2WithMain
+  Catch2::Catch2
   CrucibleCore
   faust::withllvm
   juce::juce_dsp

@@ -20,3 +20,8 @@ ui/dist/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Scratch / build-debugging
+scratch/
+_*.bat
+_*.log

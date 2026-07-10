@@ -1,76 +1,104 @@
 # Crucible
 
-A VST3 plugin that hosts user-supplied Faust source code, by ZCROSS. Built
+A VST3 plugin host for runtime-compiled Faust DSP, by ZCROSS. Built
 on JUCE 8. Ships in two variants that share a single Core library:
 
 - **Crucible FX** — VST3 effect (audio in -> audio out).
 - **Crucible Instrument** — VST3 instrument (MIDI in -> audio out).
 
+Both variants embed `libfaust` with an LLVM JIT and host whichever
+Faust source file the user opens, compiling it on the fly and hot-
+reloading on save.
+
 ## Install
 
-Download the latest release for your platform from the GitHub Releases
+Download the installer for your platform from the GitHub Releases
 page:
 
 **https://github.com/visionsofparadise/crucible/releases**
 
-Each release ships archives for both variants per platform:
+A single installer per platform drops both variants:
 
-- `Crucible-vX.Y.Z-windows-x64.zip` — `Crucible FX.vst3` and
-  `Crucible Instrument.vst3` (directory bundles) plus the matching
-  Standalone executables.
-- `Crucible-vX.Y.Z-macos-universal.zip` — `.vst3` bundles and `.app`
+- `Crucible-vX.Y.Z-windows-x64.exe` — Inno Setup installer covering
+  both VST3 bundles and both Standalone executables.
+- `Crucible-vX.Y.Z-macos-universal.dmg` — disk image containing a
+  `Crucible.pkg` that installs both VST3 bundles and both `.app`
   Standalones (universal: arm64 + x86_64).
-- `Crucible-vX.Y.Z-linux-x64.zip` — `.vst3` directory bundles plus the
-  Standalone executables.
+- `Crucible-vX.Y.Z-linux-x64.tar.gz` — tarball with both `.vst3`
+  bundles, both Standalone executables, and a user-local `install.sh`.
 
-### Install location
+The v1 release artefacts are **unsigned**. Each OS has a one-time
+unblock step on first run; the per-OS sections below tell the OS to
+trust them.
 
-After unzipping, move each `.vst3` to your DAW's VST3 search path:
+### Windows
 
-| OS      | Path                                          |
-|---------|-----------------------------------------------|
-| Windows | `C:\Program Files\Common Files\VST3\`         |
-| macOS   | `~/Library/Audio/Plug-Ins/VST3/` (or `/Library/Audio/Plug-Ins/VST3/` system-wide) |
-| Linux   | `~/.vst3/` (or `/usr/lib/vst3/` system-wide)  |
+1. Download `Crucible-vX.Y.Z-windows-x64.exe` from the Releases page.
+2. Double-click the installer. SmartScreen will warn about an unknown
+   publisher — click **More info** -> **Run anyway**. JUCE plugins also
+   require the **Microsoft Edge WebView2 runtime** for the embedded UI
+   to render; it is preinstalled on most Windows 11 hosts. If missing,
+   install the evergreen bootstrapper from
+   https://developer.microsoft.com/microsoft-edge/webview2/.
+3. UAC will prompt for elevation, then the installer drops
+   `Crucible FX.vst3` and `Crucible Instrument.vst3` at
+   `C:\Program Files\Common Files\VST3\` and both Standalones at
+   `C:\Program Files\ZCROSS\Crucible\`. Start Menu shortcuts are added.
+   To uninstall, use Add/Remove Programs.
 
 Then rescan plugins in your DAW. The plugins appear as **Crucible FX**
 and **Crucible Instrument** by **ZCROSS** under Fx and Instrument
 respectively.
 
-### Unblocking the unsigned binaries
+### macOS
 
-The v1 release artifacts are **unsigned**. Each OS will refuse to load
-them on first run; the steps below tell the OS to trust them.
+1. Download `Crucible-vX.Y.Z-macos-universal.dmg` from the Releases
+   page.
+2. **Right-click** the `.dmg` -> **Open** to clear Gatekeeper, then
+   double-click the mounted volume to view the contained
+   `Crucible.pkg`.
+3. **Right-click** `Crucible.pkg` -> **Open** to clear Gatekeeper on
+   the installer itself, then follow the system installer. Files land
+   at `/Library/Audio/Plug-Ins/VST3/Crucible FX.vst3/`,
+   `/Library/Audio/Plug-Ins/VST3/Crucible Instrument.vst3/`,
+   `/Applications/Crucible FX.app`, and
+   `/Applications/Crucible Instrument.app`. To uninstall, delete those
+   four paths manually.
 
-- **Windows** — SmartScreen will block the Standalone executables on
-  first run. Click **More info** -> **Run anyway**. The `.vst3`s do not
-  trigger SmartScreen since the DAW loads them as plain DLLs inside
-  directory bundles. Note: JUCE-backed plugins require the
-  **Microsoft Edge WebView2 runtime** for the embedded UI to render. It
-  is preinstalled on most Windows 11 hosts; if missing, install the
-  evergreen bootstrapper from
-  https://developer.microsoft.com/microsoft-edge/webview2/.
-- **macOS** — Gatekeeper will quarantine the `.vst3`s and `.app`s.
-  After unzipping, from a terminal in the unzip directory:
-  ```
-  xattr -cr "Crucible FX.vst3"
-  xattr -cr "Crucible Instrument.vst3"
-  xattr -cr "Crucible FX.app"
-  xattr -cr "Crucible Instrument.app"
-  spctl --add "Crucible FX.vst3"
-  spctl --add "Crucible Instrument.vst3"
-  spctl --add "Crucible FX.app"
-  spctl --add "Crucible Instrument.app"
-  ```
-  Then move the `.vst3`s to `~/Library/Audio/Plug-Ins/VST3/` and the
-  `.app`s wherever convenient. (`spctl --add` requires `sudo` if the
-  bundle lives under `/Library/`; user-local installs do not.)
-- **Linux** — no signing concerns. Make sure `libwebkit2gtk-4.1-0` (or
-  the 4.0 fallback) is installed at runtime so JUCE's
-  `WebBrowserComponent` has a webview backend:
-  ```
-  sudo apt-get install libwebkit2gtk-4.1-0
-  ```
+If macOS still refuses to load the bundles after install (older
+Gatekeeper policies sometimes quarantine paths under
+`/Library/Audio/Plug-Ins/`), clear the quarantine attribute from a
+terminal:
+
+```
+sudo xattr -cr "/Library/Audio/Plug-Ins/VST3/Crucible FX.vst3"
+sudo xattr -cr "/Library/Audio/Plug-Ins/VST3/Crucible Instrument.vst3"
+sudo spctl --add "/Library/Audio/Plug-Ins/VST3/Crucible FX.vst3"
+sudo spctl --add "/Library/Audio/Plug-Ins/VST3/Crucible Instrument.vst3"
+```
+
+Then rescan plugins in your DAW. The plugins appear as **Crucible FX**
+and **Crucible Instrument** by **ZCROSS** under Fx and Instrument
+respectively.
+
+### Linux
+
+1. Download `Crucible-vX.Y.Z-linux-x64.tar.gz` from the Releases page.
+2. Install the WebView runtime dependency so JUCE's
+   `WebBrowserComponent` has a backend:
+   ```
+   sudo apt-get install libwebkit2gtk-4.1-0
+   ```
+   No signing concerns on Linux.
+3. Extract the tarball into a fresh directory and run `bash
+   install.sh`. VST3 bundles land at `~/.vst3/Crucible FX.vst3/` and
+   `~/.vst3/Crucible Instrument.vst3/`; Standalones land at
+   `~/.local/bin/crucible-fx` and `~/.local/bin/crucible-instrument`.
+   To uninstall, delete those four paths.
+
+Then rescan plugins in your DAW. The plugins appear as **Crucible FX**
+and **Crucible Instrument** by **ZCROSS** under Fx and Instrument
+respectively.
 
 ## Repository layout
 
@@ -131,6 +159,14 @@ above already cover the supported platforms.
   React UI into the plugins via `juce_add_binary_data`. Debug builds
   with `CRUCIBLE_UI_DEV_SERVER=ON` skip the npm step and expect the
   Vite dev server at `http://localhost:5173`.
+- **~1 GB of free disk** for the Faust 2.85.5 prebuilt artefact pulled
+  by `FetchFaust.cmake` at configure time (313 MB on Linux, 424 MB on
+  Windows, plus headers, plus the LLVM-bearing static library that
+  `libfaustwithllvm` links into the plugins).
+- **7-Zip** on Windows (`choco install 7zip` or `winget install
+  7zip.7zip`) — `FetchFaust.cmake` shells out to `7z` to crack the
+  upstream NSIS installer for `libfaustwithllvm.lib`. Not needed on
+  macOS (uses `hdiutil`) or Linux (the prebuilt is a zip).
 
 ### Configure and build
 
@@ -158,7 +194,7 @@ launching the plugin in debug mode.
 ### Tests
 
 ```
-cmake --build --preset windows-release --target CrucibleTests
+cmake --build --preset windows-release --target crucible_tests
 ctest --preset default-test --output-on-failure
 ```
 
@@ -167,10 +203,11 @@ respectively (the test presets are host-conditioned).
 
 ## Releases
 
-Releases are produced by a GitHub Actions matrix workflow on every `v*`
-tag push. The workflow builds Windows / macOS / Linux in parallel, runs
-the Catch2 tests, and publishes the resulting ZIPs to GitHub Releases as
-unsigned artefacts. To cut a release:
+Releases are produced by a GitHub Actions matrix workflow
+(`.github/workflows/release.yml`) on every `v*` tag push. The workflow
+builds Windows / macOS / Linux in parallel, runs the Catch2 tests, and
+publishes the resulting installers to GitHub Releases as unsigned
+artefacts. To cut a release:
 
 ```
 git tag v0.1.0
@@ -179,5 +216,16 @@ git push origin v0.1.0
 
 ## License
 
-Proprietary. See [LICENSE](LICENSE). JUCE 8 used under its Personal
-license terms.
+Proprietary. All rights reserved. See [LICENSE](LICENSE).
+
+Third-party components used at build and/or runtime:
+
+- **JUCE 8** — used under its Personal license terms (free distribution
+  while annual revenue is below the JUCE-published threshold). Re-check
+  JUCE's current threshold before each paid release.
+- **libfaust** (Faust 2.85.5) — released under GPLv2 **with a runtime
+  linking exception** that explicitly permits linking `libfaust` into
+  proprietary applications without imposing GPL on the application.
+  Crucible relies on that exception.
+- **LLVM** (bundled inside `libfaustwithllvm`) — used under the Apache
+  License 2.0 with LLVM exceptions.

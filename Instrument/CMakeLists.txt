@@ -44,6 +44,7 @@ endif()
 target_sources(CrucibleInstrument PRIVATE
   PluginProcessor.cpp
   PluginEditor.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../Core/WebviewBridge.cpp
 )
 
 target_compile_definitions(CrucibleInstrument PRIVATE
@@ -63,6 +64,7 @@ endif()
 
 target_link_libraries(CrucibleInstrument PRIVATE
   CrucibleCore
+  CrucibleSkillData
   juce::juce_audio_utils
   juce::juce_audio_plugin_client
   juce::juce_dsp
@@ -75,7 +77,9 @@ target_link_libraries(CrucibleInstrument PRIVATE
 # UI bundling — release builds embed the Vite output via the shared
 # `CrucibleUIData` target defined in Core/CMakeLists.txt, debug builds
 # expect the dev server at `localhost:5173`. Selected by the top-level
-# `CRUCIBLE_UI_DEV_SERVER` option.
+# `CRUCIBLE_UI_DEV_SERVER` option. The `CRUCIBLE_UI_BUNDLED` macro is
+# read by WebviewBridge.cpp (compiled into each plugin) to switch
+# between the resource-provider path and the dev-server URL.
 if(NOT CRUCIBLE_UI_DEV_SERVER)
   target_link_libraries(CrucibleInstrument PRIVATE CrucibleUIData)
   target_compile_definitions(CrucibleInstrument PRIVATE CRUCIBLE_UI_BUNDLED=1)

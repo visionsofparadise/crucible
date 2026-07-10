@@ -15,6 +15,11 @@
     "unit": "vitest run unit"
   },
   "dependencies": {
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/language": "^6.10.3",
+    "@codemirror/lint": "^6.8.4",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.34.1",
     "@fontsource/archivo-black": "^5.2.8",
     "@fontsource/azeret-mono": "^5.2.11",
     "@fontsource/bagel-fat-one": "^5.2.7",
@@ -28,8 +33,11 @@
     "@fontsource/rubik-spray-paint": "^5.2.7",
     "@fontsource/rubik-wet-paint": "^5.2.7",
     "@fontsource/unbounded": "^5.2.8",
+    "@lezer/highlight": "^1.2.1",
+    "@uiw/react-codemirror": "^4.25.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "juce-framework-frontend": "file:./vendor/juce-framework-frontend",
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

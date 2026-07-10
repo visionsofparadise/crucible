@@ -22,6 +22,9 @@ export default tseslint.config(
       "**/postcss.config.*",
       "**/*.test.ts",
       "**/*.test.tsx",
+      "agent-eslint.js",
+      "agent-tsc.js",
+      "vendor/**",
     ],
   },
 

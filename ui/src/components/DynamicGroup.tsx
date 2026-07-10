@@ -1,0 +1,84 @@
+import { useState } from 'react';
+import ButtonSelection from '../design-system/components/ButtonSelection';
+import type { CrucibleControlSchema, CrucibleGroupSchema, CrucibleSchemaNode } from '../lib/juce';
+import DynamicControl from './DynamicControl';
+
+const isGroup = (node: CrucibleSchemaNode): node is CrucibleGroupSchema =>
+  node.type === 'vgroup' || node.type === 'hgroup' || node.type === 'tgroup';
+
+const isControl = (node: CrucibleSchemaNode): node is CrucibleControlSchema => !isGroup(node);
+
+const labelChildren = (group: CrucibleGroupSchema): Array<{ label: string; group: CrucibleGroupSchema }> => {
+  const groups = group.items.filter(isGroup);
+  return groups.map((entry) => ({ label: entry.label, group: entry }));
+};
+
+// Recursive group renderer. Hierarchy:
+//   vgroup / hgroup → label + indented children (group label rows
+//     followed by inline control rows, mirroring the design's `Group`).
+//   tgroup → button-select switcher over child groups; only the active
+//     sub-group's children render below.
+
+interface DynamicGroupProps {
+  group: CrucibleGroupSchema;
+  depth?: number;
+}
+
+const DynamicGroup = ({ group, depth = 0 }: DynamicGroupProps) => {
+  if (group.type === 'tgroup') return <TabbedGroup group={group} depth={depth} />;
+
+  const childGroups = group.items.filter(isGroup);
+  const childControls = group.items.filter(isControl);
+
+  return (
+    <div className="flex flex-col gap-2">
+      {group.label.length > 0 && (
+        <div className="flex items-center gap-2" style={{ paddingLeft: depth * 12 }}>
+          {depth > 0 && <span className="type-label text-dimmed">└</span>}
+          <span className="type-label text-text-primary">{group.label}</span>
+        </div>
+      )}
+      {childControls.length > 0 && (
+        <div
+          className="flex flex-wrap items-end gap-x-4 gap-y-3 pb-3"
+          style={{ paddingLeft: depth * 12 + (depth > 0 ? 16 : 0) }}
+        >
+          {childControls.map((control) => (
+            <DynamicControl key={control.address} control={control} />
+          ))}
+        </div>
+      )}
+      {childGroups.map((childGroup) => (
+        <DynamicGroup
+          key={childGroup.label || childGroup.items.map((entry) => isControl(entry) ? entry.address : entry.label).join('|')}
+          group={childGroup}
+          depth={depth + 1}
+        />
+      ))}
+    </div>
+  );
+};
+
+const TabbedGroup = ({ group, depth }: { group: CrucibleGroupSchema; depth: number }) => {
+  const labels = labelChildren(group);
+  const [active, setActive] = useState<string>(labels[0]?.label ?? '');
+  const activeGroup = labels.find((entry) => entry.label === active)?.group ?? labels[0]?.group;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2" style={{ paddingLeft: depth * 12 }}>
+        {depth > 0 && <span className="type-label text-dimmed">└</span>}
+        {group.label.length > 0 && (
+          <span className="type-label text-text-primary">{group.label}</span>
+        )}
+        <ButtonSelection
+          options={labels.map((entry) => entry.label)}
+          active={active}
+          onSelect={setActive}
+        />
+      </div>
+      {activeGroup && <DynamicGroup group={activeGroup} depth={depth + 1} />}
+    </div>
+  );
+};
+
+export default DynamicGroup;

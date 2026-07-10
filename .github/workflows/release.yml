@@ -1,0 +1,212 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            preset: windows-release
+            test-preset: default-test
+            artifact-suffix: windows-x64
+            faust-platform: win64
+          - os: macos-15
+            preset: macos-release
+            test-preset: default-test-macos
+            artifact-suffix: macos-universal
+            faust-platform: macos
+          - os: ubuntu-24.04
+            preset: linux-release
+            test-preset: default-test-linux
+            artifact-suffix: linux-x64
+            faust-platform: linux-x86_64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      # ----- Per-OS toolchain prep -----
+
+      - name: Linux deps
+        if: matrix.os == 'ubuntu-24.04'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev libjack-jackd2-dev libcurl4-openssl-dev \
+            libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev \
+            libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev \
+            libxrender-dev libgtk-3-dev libwebkit2gtk-4.1-dev libglu1-mesa-dev \
+            mesa-common-dev ninja-build
+
+      - name: macOS deps
+        if: matrix.os == 'macos-15'
+        shell: bash
+        run: brew install ninja
+
+      - name: Windows deps (ninja)
+        if: matrix.os == 'windows-2025'
+        shell: pwsh
+        run: choco install ninja -y
+
+      - name: Install 7-Zip (Windows)
+        # FetchFaust.cmake's Windows path shells out to 7z to crack the
+        # NSIS-packaged Faust installer and pull out libfaustwithllvm.lib.
+        # GitHub's windows-2025 image ships 7-Zip pre-installed, but the
+        # explicit install keeps the workflow self-documenting and tolerant
+        # to runner image changes.
+        if: matrix.os == 'windows-2025'
+        shell: pwsh
+        run: choco install 7zip -y --no-progress
+
+      - name: Install Inno Setup (Windows)
+        if: matrix.os == 'windows-2025'
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Setup NuGet (Windows)
+        if: matrix.os == 'windows-2025'
+        uses: NuGet/setup-nuget@v2
+        with:
+          nuget-version: 'latest'
+
+      - name: Install Microsoft.Web.WebView2 NuGet (Windows)
+        # JUCE's juce_gui_extra requires the WebView2 SDK headers + static
+        # loader to compile the WebBrowserComponent webview2 backend. JUCE's
+        # FindWebView2.cmake searches under
+        # %USERPROFILE%\AppData\Local\PackageManagement\NuGet\Packages\*Microsoft.Web.WebView2*
+        # by default, or under JUCE_WEBVIEW2_PACKAGE_LOCATION when set. We
+        # install to a workspace-local 'packages' directory and point the
+        # variable at it so configure picks it up unambiguously.
+        if: matrix.os == 'windows-2025'
+        shell: pwsh
+        run: |
+          nuget install Microsoft.Web.WebView2 `
+            -Version 1.0.3485.44 `
+            -OutputDirectory "${{ github.workspace }}/packages" `
+            -ExcludeVersion -NonInteractive
+          # Sanity: confirm the headers landed where JUCE expects them under
+          # JUCE_WEBVIEW2_PACKAGE_LOCATION.
+          if (-not (Test-Path "${{ github.workspace }}/packages/Microsoft.Web.WebView2/build/native/include/WebView2.h")) {
+            Write-Error "WebView2.h not found at expected location"
+            exit 1
+          }
+
+      - name: Enter VS dev shell (Windows)
+        if: matrix.os == 'windows-2025'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # ----- Faust prebuilt cache -----
+      # FetchFaust.cmake downloads ~313 MB on Linux and ~424 MB on Windows
+      # at configure time. Cache the FetchContent download tree per
+      # (platform, Faust version) so re-runs and re-tags don't re-download.
+      # Key is keyed on the FetchFaust.cmake hash so a Faust version bump
+      # naturally invalidates the cache.
+      - name: Cache Faust prebuilt
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/${{ matrix.preset }}/_deps/faust_prebuilt-src
+            build/${{ matrix.preset }}/_deps/faust_prebuilt-subbuild
+            build/${{ matrix.preset }}/_deps/faust_source-src
+            build/${{ matrix.preset }}/_deps/faust_source-subbuild
+          key: faust-2.85.5-${{ matrix.faust-platform }}-${{ hashFiles('CMake/FetchFaust.cmake') }}
+          restore-keys: |
+            faust-2.85.5-${{ matrix.faust-platform }}-
+
+      # ----- UI bundle -----
+      # Core/CMakeLists.txt's juce_add_binary_data for CrucibleUIData globs
+      # ui/dist/* at CONFIGURE time, with a FATAL_ERROR guard if the bundle
+      # is missing. Local builds populate it via an add_custom_command;
+      # release CI must run npm install + build before cmake configure.
+      - name: Build UI bundle
+        shell: bash
+        run: |
+          cd ui
+          npm ci
+          npm run build
+
+      # ----- Configure / build / test -----
+
+      - name: Configure
+        shell: bash
+        run: |
+          # JUCE's FindWebView2.cmake reads JUCE_WEBVIEW2_PACKAGE_LOCATION as a
+          # CMake variable, not an env var, so pass it via -D. Quote the value:
+          # github.workspace expands to D:\a\... on Windows and unquoted backslashes
+          # are eaten by bash. The flag is a no-op on non-Windows (FindWebView2
+          # isn't loaded — FX/Instrument CMakeLists gate the WebView2 path on
+          # if(WIN32)).
+          cmake --preset ${{ matrix.preset }} \
+            "-DJUCE_WEBVIEW2_PACKAGE_LOCATION=${{ github.workspace }}/packages"
+
+      - name: Build Crucible FX (VST3)
+        shell: bash
+        run: cmake --build --preset ${{ matrix.preset }} --target CrucibleFX_VST3
+
+      - name: Build Crucible FX (Standalone)
+        shell: bash
+        run: cmake --build --preset ${{ matrix.preset }} --target CrucibleFX_Standalone
+
+      - name: Build Crucible Instrument (VST3)
+        shell: bash
+        run: cmake --build --preset ${{ matrix.preset }} --target CrucibleInstrument_VST3
+
+      - name: Build Crucible Instrument (Standalone)
+        shell: bash
+        run: cmake --build --preset ${{ matrix.preset }} --target CrucibleInstrument_Standalone
+
+      - name: Build tests
+        shell: bash
+        run: cmake --build --preset ${{ matrix.preset }} --target crucible_tests
+
+      - name: Run tests
+        shell: bash
+        run: ctest --preset ${{ matrix.test-preset }} --output-on-failure
+
+      # ----- Package & upload -----
+
+      - name: Package (macOS installer)
+        if: matrix.os == 'macos-15'
+        shell: bash
+        run: |
+          mkdir -p dist
+          bash installers/macos/build-pkg.sh "$GITHUB_REF_NAME"
+
+      - name: Package (Linux tarball)
+        if: matrix.os == 'ubuntu-24.04'
+        shell: bash
+        run: |
+          mkdir -p dist
+          bash installers/linux/package.sh "$GITHUB_REF_NAME"
+
+      - name: Package (Windows installer)
+        if: matrix.os == 'windows-2025'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          iscc /DAppVersion=$env:GITHUB_REF_NAME installers\windows\Crucible.iss
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/Crucible-${{ github.ref_name }}-${{ matrix.artifact-suffix }}.*
+          draft: false
+          prerelease: false
+          generate_release_notes: true

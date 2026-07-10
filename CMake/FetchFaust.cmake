@@ -104,13 +104,24 @@ elseif(APPLE)
   if(NOT EXISTS ${FAUST_LIB_DIR}/libfaustwithllvm.a)
     set(_mount /tmp/crucible-faust-mount)
     execute_process(COMMAND ${HDIUTIL_EXE} attach -nobrowse -mountpoint ${_mount} "${faust_prebuilt_SOURCE_DIR}/${FAUST_DMG}")
-    file(COPY ${_mount}/Faust-${FAUST_VERSION}/Faust-${FAUST_VERSION}/lib/libfaustwithllvm.a DESTINATION ${FAUST_LIB_DIR})
+    # The dmg's internal folder nesting is not contractual; locate the lib wherever it sits.
+    file(GLOB_RECURSE _faust_dmg_lib "${_mount}/*libfaustwithllvm.a")
+    if(_faust_dmg_lib)
+      list(GET _faust_dmg_lib 0 _faust_dmg_lib_src)
+      file(COPY ${_faust_dmg_lib_src} DESTINATION ${FAUST_LIB_DIR})
+    endif()
     execute_process(COMMAND ${HDIUTIL_EXE} detach ${_mount})
   endif()
   set(FAUST_LIB_PATH ${FAUST_LIB_DIR}/libfaustwithllvm.a)
 else()
-  # Linux: zip is auto-extracted by FetchContent into faust_prebuilt_SOURCE_DIR.
-  set(FAUST_LIB_PATH ${faust_prebuilt_SOURCE_DIR}/lib/libfaustwithllvm.a)
+  # Linux: zip auto-extracted by FetchContent; the lib's nesting inside the
+  # archive is not contractual, so locate it wherever it landed.
+  file(GLOB_RECURSE _faust_linux_lib "${faust_prebuilt_SOURCE_DIR}/*libfaustwithllvm.a")
+  if(_faust_linux_lib)
+    list(GET _faust_linux_lib 0 FAUST_LIB_PATH)
+  else()
+    set(FAUST_LIB_PATH ${faust_prebuilt_SOURCE_DIR}/lib/libfaustwithllvm.a)
+  endif()
 endif()
 
 if(NOT EXISTS ${FAUST_LIB_PATH})

@@ -39,6 +39,9 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Pin npm 12
+        run: npm install -g npm@12
+
       # ----- Per-OS toolchain prep -----
 
       - name: Linux deps
@@ -140,6 +143,7 @@ jobs:
         shell: bash
         run: |
           cd ui
+          npm config set strict-allow-scripts=true --location=project
           npm ci
           npm run build
 

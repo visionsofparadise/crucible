@@ -1,0 +1,9 @@
+#!/bin/sh
+repo_root=$(git rev-parse --show-toplevel)
+msg_file="$1"
+case "$msg_file" in
+	/*) ;;
+	*) msg_file="$repo_root/$msg_file" ;;
+esac
+cd "$repo_root/ui" || exit 1
+exec npx --no -- commitlint --edit "$msg_file"

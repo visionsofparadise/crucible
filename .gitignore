@@ -25,3 +25,6 @@ Thumbs.db
 scratch/
 _*.bat
 _*.log
+
+# Gate tooling (Trivy, actionlint)
+.tools/

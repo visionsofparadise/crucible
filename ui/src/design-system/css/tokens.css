@@ -1,63 +1,63 @@
 @theme {
-  --color-surface: #1C1A17;
-  --color-elevated: #252320;
-  --color-border: #3A3632;
-  --color-dimmed: #5A5550;
-  --color-text-secondary: #7A7570;
-  --color-text-primary: #E8E3DB;
-  --color-accent-primary: #E0653C;
-  --color-accent-secondary: #47A5A5;
-  --color-unit-1: #C98A6C;
-  --color-unit-2: #A8A545;
-  --color-unit-3: #45A8A0;
-  --color-unit-4: #B86894;
-  --color-unit-5: #7B85C4;
-  --color-unit-6: #C4B24A;
-  --color-meter-green: #4A7A5A;
-  --color-meter-yellow: #A59A4A;
+	--color-surface: #1c1a17;
+	--color-elevated: #252320;
+	--color-border: #3a3632;
+	--color-dimmed: #5a5550;
+	--color-text-secondary: #7a7570;
+	--color-text-primary: #e8e3db;
+	--color-accent-primary: #e0653c;
+	--color-accent-secondary: #47a5a5;
+	--color-unit-1: #c98a6c;
+	--color-unit-2: #a8a545;
+	--color-unit-3: #45a8a0;
+	--color-unit-4: #b86894;
+	--color-unit-5: #7b85c4;
+	--color-unit-6: #c4b24a;
+	--color-meter-green: #4a7a5a;
+	--color-meter-yellow: #a59a4a;
 
-  /* Design-v2 screen surfaces (CRT editor, meter rails, LCD readouts). */
-  --color-screen: #0A0806;
-  --color-meter-track: #17150F;
-  --color-lcd-text: #9A9088;
-  --color-text-bright: #F0EBE3;
-  --color-text-sub: #B8B0A6;
-  --color-gutter: #4A463F;
-  --color-seg-on-text: #140A0B;
+	/* Design-v2 screen surfaces (CRT editor, meter rails, LCD readouts). */
+	--color-screen: #0a0806;
+	--color-meter-track: #17150f;
+	--color-lcd-text: #9a9088;
+	--color-text-bright: #f0ebe3;
+	--color-text-sub: #b8b0a6;
+	--color-gutter: #4a463f;
+	--color-seg-on-text: #140a0b;
 
-  --font-mono: 'Azeret Mono', monospace;
-  --font-sans: 'Azeret Mono', monospace;
-  --font-lcd: 'Doto', monospace;
-  --font-title: 'Pirata One', cursive;
+	--font-mono: "Azeret Mono", monospace;
+	--font-sans: "Azeret Mono", monospace;
+	--font-lcd: "Doto", monospace;
+	--font-title: "Pirata One", cursive;
 }
 
 @layer base {
-  :root {
-    color-scheme: dark;
+	:root {
+		color-scheme: dark;
 
-    --metal-blend: soft-light;
-    --metal-strength: 0.6;
-    --glass-blend: screen;
-    --glass-strength: 0.02;
-  }
+		--metal-blend: soft-light;
+		--metal-strength: 0.6;
+		--glass-blend: screen;
+		--glass-strength: 0.02;
+	}
 
-  .theme-light {
-    --color-surface: #F5F0E8;
-    --color-elevated: #EDE8E0;
-    --color-border: #D5D0C8;
-    --color-dimmed: #B0A898;
-    --color-text-secondary: #8A8070;
-    --color-text-primary: #2A2520;
-    --color-meter-green: #4A7A5A;
-    --color-meter-yellow: #A59A4A;
-    color-scheme: light;
-  }
+	.theme-light {
+		--color-surface: #f5f0e8;
+		--color-elevated: #ede8e0;
+		--color-border: #d5d0c8;
+		--color-dimmed: #b0a898;
+		--color-text-secondary: #8a8070;
+		--color-text-primary: #2a2520;
+		--color-meter-green: #4a7a5a;
+		--color-meter-yellow: #a59a4a;
+		color-scheme: light;
+	}
 
-  body {
-    font-family: var(--font-mono);
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
-    font-size: 13px;
-    line-height: 1.5;
-  }
+	body {
+		font-family: var(--font-mono);
+		background-color: var(--color-surface);
+		color: var(--color-text-primary);
+		font-size: 13px;
+		line-height: 1.5;
+	}
 }

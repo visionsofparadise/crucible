@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { isJuceHost, notifyDiagramNavigate } from '../lib/crucible-bridge';
+import { useEffect, useRef, useState } from "react";
+import { isJuceHost, notifyDiagramNavigate } from "../lib/crucible-bridge";
 
 // Demo SVG inlined for dev mode. The real production path fetches
 // `https://crucible.local/svg/<filename>` resolved by the C++
@@ -79,173 +79,203 @@ const SVG_THEME_CSS = `
 // drill-in click handler reads; the `<a>` stays for layout/accent but
 // is no longer a hyperlink, so neither symptom can occur.
 const deLinkAnchors = (raw: string): string =>
-  raw.replace(/<a\b[^>]*>/gi, (tag) =>
-    tag.replace(/\b(?:xlink:href|href)\s*=\s*(["'])(.*?)\1/gi, 'data-diagram-href=$1$2$1'),
-  );
-
+	raw.replace(/<a\b[^>]*>/gi, (tag) =>
+		tag.replace(/\b(?:xlink:href|href)\s*=\s*(["'])(.*?)\1/gi, "data-diagram-href=$1$2$1"),
+	);
 
 const fetchDevSvg = (relPath: string): Promise<string> => {
-  if (relPath.endsWith('process.svg') || relPath === 'process.svg' || relPath === '') {
-    return Promise.resolve(DEV_DEMO_SVG);
-  }
-  return Promise.resolve(DEV_FILTER_SVG);
+	if (relPath.endsWith("process.svg") || relPath === "process.svg" || relPath === "") {
+		return Promise.resolve(DEV_DEMO_SVG);
+	}
+
+	return Promise.resolve(DEV_FILTER_SVG);
 };
 
 const fetchHostSvg = async (svgRoot: string, relPath: string): Promise<string> => {
-  // Resource provider serves `/svg/<filename>` mapped to the runtime's
-  // current SVG output directory. `svgRoot` is the absolute path that
-  // C++ wrote into the compile result; we strip down to filename so
-  // the URL is opaque to the JS side.
-  const filename = relPath.length > 0 ? relPath : 'process.svg';
-  const url = `/svg/${filename}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`SVG fetch failed: ${url}`);
-  // Touch svgRoot so the lint rule doesn't strip the prop — the path
-  // is useful in dev console / diagnostic logging.
-  if (svgRoot.length === 0) {
-    // No-op
-  }
-  return response.text();
+	// Resource provider serves `/svg/<filename>` mapped to the runtime's
+	// current SVG output directory. `svgRoot` is the absolute path that
+	// C++ wrote into the compile result; we strip down to filename so
+	// the URL is opaque to the JS side.
+	const filename = relPath.length > 0 ? relPath : "process.svg";
+	const url = `/svg/${filename}`;
+	const response = await fetch(url);
+
+	if (!response.ok) throw new Error(`SVG fetch failed: ${url}`);
+
+	// Touch svgRoot so the lint rule doesn't strip the prop — the path
+	// is useful in dev console / diagnostic logging.
+	if (svgRoot.length === 0) {
+		// No-op
+	}
+
+	return response.text();
 };
 
 interface DiagramPanelProps {
-  svgRoot: string;
-  navStack: Array<string>;
-  pushNavigation: (relPath: string) => void;
-  scale: number;
-  tx: number;
-  ty: number;
-  onScaleChange: (next: number) => void;
-  onPanChange: (tx: number, ty: number) => void;
+	svgRoot: string;
+	navStack: Array<string>;
+	pushNavigation: (relPath: string) => void;
+	scale: number;
+	tx: number;
+	ty: number;
+	onScaleChange: (next: number) => void;
+	onPanChange: (tx: number, ty: number) => void;
 }
 
 const DiagramPanel = ({
-  svgRoot,
-  navStack,
-  pushNavigation,
-  scale,
-  tx,
-  ty,
-  onScaleChange,
-  onPanChange,
+	svgRoot,
+	navStack,
+	pushNavigation,
+	scale,
+	tx,
+	ty,
+	onScaleChange,
+	onPanChange,
 }: DiagramPanelProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ x: number; y: number; startTx: number; startTy: number; panning: boolean } | null>(null);
-  const suppressClickRef = useRef(false);
-  const [svgText, setSvgText] = useState<string>('');
+	const containerRef = useRef<HTMLDivElement>(null);
+	const dragRef = useRef<{ x: number; y: number; startTx: number; startTy: number; panning: boolean } | null>(null);
+	const suppressClickRef = useRef(false);
+	const [svgText, setSvgText] = useState<string>("");
 
-  const currentPath = navStack[navStack.length - 1] ?? 'process.svg';
+	const currentPath = navStack[navStack.length - 1] ?? "process.svg";
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async (): Promise<void> => {
-      try {
-        const text = isJuceHost()
-          ? await fetchHostSvg(svgRoot, currentPath)
-          : await fetchDevSvg(currentPath);
-        if (!cancelled) setSvgText(deLinkAnchors(text));
-      } catch {
-        if (!cancelled) setSvgText('');
-      }
-    };
-    void load();
-    return () => { cancelled = true; };
-  }, [svgRoot, currentPath]);
+	useEffect(() => {
+		let cancelled = false;
+		const load = async (): Promise<void> => {
+			try {
+				const text = isJuceHost() ? await fetchHostSvg(svgRoot, currentPath) : await fetchDevSvg(currentPath);
 
-  // Drill-in navigation: one delegated listener on the container.
-  // Delegation survives every innerHTML swap, and reading up from
-  // `event.target` handles clicks landing on the rect/text children
-  // inside the de-linked `<a>` wrappers.
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const handler = (event: Event): void => {
-      if (suppressClickRef.current) {
-        suppressClickRef.current = false;
-        return;
-      }
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const anchor = target.closest('a[data-diagram-href]');
-      if (!anchor) return;
-      const href = anchor.getAttribute('data-diagram-href') ?? '';
-      if (href.length === 0) return;
-      // Strip leading "process-" path segments that Faust uses for
-      // subdiagram folder structure; pass through the trailing
-      // `.svg` filename. The C++ side resolves the path internally.
-      const filename = href.includes('/') ? href.slice(href.lastIndexOf('/') + 1) : href;
-      pushNavigation(filename);
-      notifyDiagramNavigate(filename);
-    };
-    container.addEventListener('click', handler);
-    return () => { container.removeEventListener('click', handler); };
-  }, [pushNavigation]);
+				if (!cancelled) setSvgText(deLinkAnchors(text));
+			} catch {
+				if (!cancelled) setSvgText("");
+			}
+		};
 
-  const onWheel = (event: React.WheelEvent): void => {
-    const delta = -event.deltaY * 0.001;
-    onScaleChange(Math.min(4, Math.max(0.25, scale * (1 + delta))));
-  };
+		void load();
 
-  // Pan starts only after the pointer travels past this distance.
-  // Real clicks carry a pixel or two of jitter; panning on that jitter
-  // shifts the SVG under the cursor mid-click, so mousedown and
-  // mouseup land on different elements and the browser retargets the
-  // click to their common ancestor — the drill-in anchor never sees it.
-  const DRAG_THRESHOLD_PX = 4;
+		return () => {
+			cancelled = true;
+		};
+	}, [svgRoot, currentPath]);
 
-  const onMouseDown = (event: React.MouseEvent): void => {
-    suppressClickRef.current = false;
-    dragRef.current = { x: event.clientX, y: event.clientY, startTx: tx, startTy: ty, panning: false };
-  };
+	// Drill-in navigation: one delegated listener on the container.
+	// Delegation survives every innerHTML swap, and reading up from
+	// `event.target` handles clicks landing on the rect/text children
+	// inside the de-linked `<a>` wrappers.
+	useEffect(() => {
+		const container = containerRef.current;
 
-  const onMouseMove = (event: React.MouseEvent): void => {
-    const drag = dragRef.current;
-    if (!drag) return;
-    const dx = event.clientX - drag.x;
-    const dy = event.clientY - drag.y;
-    if (!drag.panning) {
-      if (Math.abs(dx) < DRAG_THRESHOLD_PX && Math.abs(dy) < DRAG_THRESHOLD_PX) return;
-      drag.panning = true;
-    }
-    onPanChange(drag.startTx + dx, drag.startTy + dy);
-  };
+		if (!container) return;
 
-  const onMouseUp = (): void => {
-    // A completed pan must not drill in; the click event (if any)
-    // fires right after mouseup, so flag it for the click handler.
-    // The flag is also cleared on the next mousedown, covering pans
-    // that end outside the panel and never produce a click.
-    if (dragRef.current?.panning === true) suppressClickRef.current = true;
-    dragRef.current = null;
-  };
+		const handler = (event: Event): void => {
+			if (suppressClickRef.current) {
+				suppressClickRef.current = false;
 
-  return (
-    <div
-      className="diagram-svg relative z-[1] max-h-[300px] h-[300px] overflow-hidden cursor-grab active:cursor-grabbing text-text-primary"
-      onWheel={onWheel}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
-    >
-      <style>{SVG_THEME_CSS}</style>
-      <div
-        className="absolute top-1/2 left-1/2 origin-center"
-        style={{ transform: `translate(-50%, -50%) translate(${tx.toString()}px, ${ty.toString()}px) scale(${scale.toString()})` }}
-      >
-        <div
-          ref={containerRef}
-          className="w-[600px] [&_svg]:max-w-full [&_svg]:h-auto"
-          // Faust SVG output is generated by a trusted local libfaust
-          // binary into a temp directory we just created, so sanitisation
-          // is unnecessary. `deLinkAnchors` has already rewritten each
-          // hyperlink target into a data attribute for the drill-in
-          // handler; the theme is a scoped `<style>` above, not injected.
-          dangerouslySetInnerHTML={{ __html: svgText }}
-        />
-      </div>
-    </div>
-  );
+				return;
+			}
+
+			const target = event.target;
+
+			if (!(target instanceof Element)) return;
+
+			const anchor = target.closest("a[data-diagram-href]");
+
+			if (!anchor) return;
+
+			const href = anchor.getAttribute("data-diagram-href") ?? "";
+
+			if (href.length === 0) return;
+
+			// Strip leading "process-" path segments that Faust uses for
+			// subdiagram folder structure; pass through the trailing
+			// `.svg` filename. The C++ side resolves the path internally.
+			const filename = href.includes("/") ? href.slice(href.lastIndexOf("/") + 1) : href;
+
+			pushNavigation(filename);
+			notifyDiagramNavigate(filename);
+		};
+
+		container.addEventListener("click", handler);
+
+		return () => {
+			container.removeEventListener("click", handler);
+		};
+	}, [pushNavigation]);
+
+	const onWheel = (event: React.WheelEvent): void => {
+		const delta = -event.deltaY * 0.001;
+
+		onScaleChange(Math.min(4, Math.max(0.25, scale * (1 + delta))));
+	};
+
+	// Pan starts only after the pointer travels past this distance.
+	// Real clicks carry a pixel or two of jitter; panning on that jitter
+	// shifts the SVG under the cursor mid-click, so mousedown and
+	// mouseup land on different elements and the browser retargets the
+	// click to their common ancestor — the drill-in anchor never sees it.
+	const DRAG_THRESHOLD_PX = 4;
+
+	const onMouseDown = (event: React.MouseEvent): void => {
+		suppressClickRef.current = false;
+		dragRef.current = { x: event.clientX, y: event.clientY, startTx: tx, startTy: ty, panning: false };
+	};
+
+	const onMouseMove = (event: React.MouseEvent): void => {
+		const drag = dragRef.current;
+
+		if (!drag) return;
+
+		const dx = event.clientX - drag.x;
+		const dy = event.clientY - drag.y;
+
+		if (!drag.panning) {
+			if (Math.abs(dx) < DRAG_THRESHOLD_PX && Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+
+			drag.panning = true;
+		}
+
+		onPanChange(drag.startTx + dx, drag.startTy + dy);
+	};
+
+	const onMouseUp = (): void => {
+		// A completed pan must not drill in; the click event (if any)
+		// fires right after mouseup, so flag it for the click handler.
+		// The flag is also cleared on the next mousedown, covering pans
+		// that end outside the panel and never produce a click.
+		if (dragRef.current?.panning === true) suppressClickRef.current = true;
+
+		dragRef.current = null;
+	};
+
+	return (
+		<div
+			className="diagram-svg relative z-[1] max-h-[300px] h-[300px] overflow-hidden cursor-grab active:cursor-grabbing text-text-primary"
+			onWheel={onWheel}
+			onMouseDown={onMouseDown}
+			onMouseMove={onMouseMove}
+			onMouseUp={onMouseUp}
+			onMouseLeave={onMouseUp}
+		>
+			<style>{SVG_THEME_CSS}</style>
+			<div
+				className="absolute top-1/2 left-1/2 origin-center"
+				style={{
+					transform: `translate(-50%, -50%) translate(${tx.toString()}px, ${ty.toString()}px) scale(${scale.toString()})`,
+				}}
+			>
+				<div
+					ref={containerRef}
+					className="w-[600px] [&_svg]:max-w-full [&_svg]:h-auto"
+					// Faust SVG output is generated by a trusted local libfaust
+					// binary into a temp directory we just created, so sanitisation
+					// is unnecessary. `deLinkAnchors` has already rewritten each
+					// hyperlink target into a data attribute for the drill-in
+					// handler; the theme is a scoped `<style>` above, not injected.
+					dangerouslySetInnerHTML={{ __html: svgText }}
+				/>
+			</div>
+		</div>
+	);
 };
 
 export default DiagramPanel;

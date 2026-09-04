@@ -16,18 +16,18 @@ import tailwindcss from "@tailwindcss/vite";
 // `import("juce-framework-frontend")` in lib/crucible-bridge.ts resolves
 // to a stable filename. Pattern mirrored from gain-shaper.
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  base: "./",
-  build: {
-    rollupOptions: {
-      output: {
-        entryFileNames: "assets/[name].js",
-        chunkFileNames: "assets/[name].js",
-        assetFileNames: "assets/[name][extname]",
-        manualChunks: {
-          "juce-framework-frontend": ["juce-framework-frontend"],
-        },
-      },
-    },
-  },
+	plugins: [react(), tailwindcss()],
+	base: "./",
+	build: {
+		rollupOptions: {
+			output: {
+				entryFileNames: "assets/[name].js",
+				chunkFileNames: "assets/[name].js",
+				assetFileNames: "assets/[name][extname]",
+				manualChunks: {
+					"juce-framework-frontend": ["juce-framework-frontend"],
+				},
+			},
+		},
+	},
 });

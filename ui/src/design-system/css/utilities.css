@@ -1,82 +1,82 @@
 @utility type-display {
-  font-weight: 400;
-  font-size: 32px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+	font-weight: 400;
+	font-size: 32px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
 }
 
 @utility type-display-outline {
-  font-weight: 400;
-  font-size: 32px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  -webkit-text-stroke: 1px currentColor;
-  -webkit-text-fill-color: transparent;
+	font-weight: 400;
+	font-size: 32px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	-webkit-text-stroke: 1px currentColor;
+	-webkit-text-fill-color: transparent;
 }
 
 @utility type-label {
-  font-weight: 400;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-secondary);
+	font-weight: 400;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--color-text-secondary);
 }
 
 @utility type-value {
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
 }
 
 @utility type-control-label {
-  font-weight: 400;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-secondary);
+	font-weight: 400;
+	font-size: 9px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--color-text-secondary);
 }
 
 @utility scrollbar-ruler {
-  &::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
-  }
-  &::-webkit-scrollbar-track {
-    background: #090806;
-  }
-  &::-webkit-scrollbar-track:horizontal {
-    box-shadow: inset 0 1px 0 0 #2A2620;
-  }
-  &::-webkit-scrollbar-track:vertical {
-    box-shadow: inset 1px 0 0 0 #2A2620;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: #3A3632;
-    border-radius: 1px;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: #5A5550;
-  }
-  &::-webkit-scrollbar-corner {
-    background: #090806;
-  }
+	&::-webkit-scrollbar {
+		width: 14px;
+		height: 14px;
+	}
+	&::-webkit-scrollbar-track {
+		background: #090806;
+	}
+	&::-webkit-scrollbar-track:horizontal {
+		box-shadow: inset 0 1px 0 0 #2a2620;
+	}
+	&::-webkit-scrollbar-track:vertical {
+		box-shadow: inset 1px 0 0 0 #2a2620;
+	}
+	&::-webkit-scrollbar-thumb {
+		background: #3a3632;
+		border-radius: 1px;
+	}
+	&::-webkit-scrollbar-thumb:hover {
+		background: #5a5550;
+	}
+	&::-webkit-scrollbar-corner {
+		background: #090806;
+	}
 }
 
 @utility diagonal-stripes {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 4px,
-    var(--color-border) 4px,
-    var(--color-border) 5px
-  );
+	background-image: repeating-linear-gradient(
+		-45deg,
+		transparent,
+		transparent 4px,
+		var(--color-border) 4px,
+		var(--color-border) 5px
+	);
 }
 
 @utility spin-slow {
-  animation: spin 2s linear infinite;
+	animation: spin 2s linear infinite;
 }
 
 @utility vertical-text {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform: rotate(180deg);
+	writing-mode: vertical-rl;
+	text-orientation: mixed;
+	transform: rotate(180deg);
 }

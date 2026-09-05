@@ -14,7 +14,6 @@ const labelChildren = (group: CrucibleGroupSchema): Array<{ label: string; group
 	return groups.map((entry) => ({ label: entry.label, group: entry }));
 };
 
-
 interface DynamicGroupProps {
 	group: CrucibleGroupSchema;
 	depth?: number;

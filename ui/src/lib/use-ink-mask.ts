@@ -64,8 +64,7 @@ export const useInkMask = (titleRef: React.RefObject<HTMLElement | null>, streng
 				style.setProperty("-webkit-mask-size", "100% 100%");
 				style.setProperty("mask-repeat", "no-repeat");
 				style.setProperty("-webkit-mask-repeat", "no-repeat");
-			} catch {
-			}
+			} catch {}
 		};
 
 		image.src = inkTextureUrl;

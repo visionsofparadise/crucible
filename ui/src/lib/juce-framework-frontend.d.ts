@@ -1,4 +1,3 @@
-
 declare module "juce-framework-frontend" {
 	export interface SliderState {
 		getNormalisedValue: () => number;

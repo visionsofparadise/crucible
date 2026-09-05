@@ -10,7 +10,6 @@ import type {
 	JuceToggleState,
 } from "./juce";
 
-
 type CompileResultListener = (result: CrucibleCompileResult | null) => void;
 type SourceChangedListener = (source: CrucibleSourceChanged) => void;
 type InputErrorListener = (errors: Array<CrucibleInputError>) => void;
@@ -59,7 +58,6 @@ const detectVariant = (): "fx" | "instrument" => {
 
 	return search.get("variant") === "instrument" ? "instrument" : "fx";
 };
-
 
 const buildDevCompileResult = (): CrucibleCompileResult => ({
 	success: true,
@@ -288,7 +286,6 @@ const seedDevSlotsFromSchema = (schema: CrucibleSchemaRoot): void => {
 	walk(schema.ui);
 };
 
-
 let installedHostCallbacks = false;
 
 const installHostCallbacks = (): void => {
@@ -369,7 +366,6 @@ const installUiClickListener = (): void => {
 	window.addEventListener("pointerdown", handler, { capture: true });
 	window.addEventListener("mousedown", handler, { capture: true });
 };
-
 
 const codeToVk: Record<string, number> = {
 	KeyA: 0x41,
@@ -553,8 +549,6 @@ const installKeyForwarder = (): void => {
 	window.addEventListener("keyup", handler, { capture: true });
 };
 
-
-
 export const useCompileResult = (): CrucibleCompileResult | null => {
 	const [result, setResult] = useState<CrucibleCompileResult | null>(latestCompileResult);
 
@@ -652,7 +646,6 @@ export const useVariant = (): "fx" | "instrument" => {
 
 	return variant;
 };
-
 
 let frontendPromise: Promise<JuceFrontend> | null = null;
 const loadFrontend = async (): Promise<JuceFrontend> => {
@@ -831,7 +824,6 @@ export const readBargraphSlot = (frame: CrucibleMeterFrame, slotId: string): num
 
 	return frame.bargraphs[index] ?? 0;
 };
-
 
 const emitEvent = (eventId: string, payload: unknown): void => {
 	if (typeof window === "undefined") return;

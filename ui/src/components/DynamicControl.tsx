@@ -90,7 +90,6 @@ const normaliseFromValue = (control: CrucibleControlSchema, value: number): numb
 	return Math.max(0, Math.min(1, (value - control.min) / range));
 };
 
-
 const FloatKnobControl = ({ control }: { control: CrucibleControlSchema }) => {
 	const index = slotIndex(control.slotId);
 	const slot = useFloatSlot(Math.max(0, index));

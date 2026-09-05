@@ -1,4 +1,3 @@
-
 export interface JuceListenerHandle {
 	addListener: (callback: () => void) => number;
 	removeListener: (id: number) => void;

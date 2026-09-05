@@ -6,9 +6,7 @@ interface KnobProps extends Omit<React.ComponentPropsWithRef<"div">, "onChange">
 	label: string;
 	size?: number;
 	onChange?: (v: number) => void;
-	/** Optional override for the value display. Defaults to `Math.round(value * 100)`. */
 	display?: string;
-	/** Pixels of vertical drag covering the full 0..1 range. Larger = finer control. Default 150. */
 	sensitivity?: number;
 	/**
 	 * Default knob value (0..1). When set, double-clicking the SVG arc resets

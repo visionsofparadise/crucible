@@ -5,7 +5,6 @@ import RingsIcon from "../design-system/icons/RingsIcon";
 import { useBoolSlot, useVariant } from "../lib/crucible-bridge";
 import { useInkMask } from "../lib/use-ink-mask";
 
-// Bypass binds to `slot.b.000` — `kBypassSlotIndex` in `Core/SlotPool.h`.
 const BYPASS_SLOT_INDEX = 0;
 
 const ICON_GLOW = "drop-shadow(0 0 5px color-mix(in srgb, var(--color-accent-primary) 45%, transparent))";

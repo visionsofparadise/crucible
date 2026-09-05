@@ -10,34 +10,6 @@ import type {
 	JuceToggleState,
 } from "./juce";
 
-/*
- * Crucible bridge.
- *
- * Sits between the JUCE 8 WebBrowserComponent message channel and the
- * React component tree.
- *
- * Two paths:
- *
- *  - **JUCE host path** (`window.__JUCE__` present). C++ pushes
- *    callbacks into `window.crucible.onCompileResult` /
- *    `onSourceChanged` / `onInputError` / `onMeterFrame`. This module
- *    installs the four callback slots once at module load, then fans
- *    out into module-level listener sets. Per-slot parameter relays
- *    (`slot.f.NNN` / `slot.b.NNN`) flow through JUCE's vendored
- *    `juce-framework-frontend` package.
- *
- *  - **Dev fallback** (`!window.__JUCE__`, i.e. `npm run start`). A
- *    synthetic compile result drives the UI through a representative
- *    schema covering every primitive. Slot reads/writes are stored
- *    in a module-level map; meter frames are synthesised from sine
- *    waves on a 30 Hz interval. The dev path is wired entirely
- *    separately from the host path — `useFloatSlot` etc. branch on
- *    `isJuceHost()` at hook invocation.
- *
- * The bridge does not own React state at module scope. Each hook
- * holds its own `useState` and subscribes to module-level fan-out
- * sets keyed on the message channel.
- */
 
 type CompileResultListener = (result: CrucibleCompileResult | null) => void;
 type SourceChangedListener = (source: CrucibleSourceChanged) => void;
@@ -53,8 +25,6 @@ type ClipboardPasteListener = (text: string) => void;
 
 const clipboardPasteListeners = new Set<ClipboardPasteListener>();
 
-// Latest values cached at module level so a freshly-mounted hook
-// returns the current state without waiting for the next message.
 let latestCompileResult: CrucibleCompileResult | null = null;
 let latestSourceChanged: CrucibleSourceChanged | null = null;
 let activeInputErrors: Array<CrucibleInputError> = [];
@@ -72,10 +42,6 @@ const latestMeterFrame: CrucibleMeterFrame = {
 
 export const isJuceHost = (): boolean => typeof window !== "undefined" && window.__JUCE__ !== undefined;
 
-// Variant detection. Production: C++'s resource provider injects a
-// `<script>window.__crucibleVariant='fx'|'instrument';</script>` into
-// `index.html` before the bundle parses. Dev: `?variant=instrument`
-// in the page URL switches; defaults to `fx`.
 const detectVariant = (): "fx" | "instrument" => {
 	if (typeof window === "undefined") return "fx";
 
@@ -94,9 +60,6 @@ const detectVariant = (): "fx" | "instrument" => {
 	return search.get("variant") === "instrument" ? "instrument" : "fx";
 };
 
-// -----------------------------------------------------------------
-// Dev-mode fallback schema + meter loop.
-// -----------------------------------------------------------------
 
 const buildDevCompileResult = (): CrucibleCompileResult => ({
 	success: true,
@@ -247,9 +210,6 @@ const startDevLoop = (): void => {
 	devLoopStarted = true;
 	devStartedAtMs = performance.now();
 
-	// Fire the synthetic compile result on the next microtask so that
-	// any hooks mounted during the same render pass have a chance to
-	// subscribe first.
 	queueMicrotask(() => {
 		const compileResult = buildDevCompileResult();
 
@@ -268,9 +228,6 @@ const startDevLoop = (): void => {
 		for (const listener of inputErrorListeners) listener(activeInputErrors);
 	});
 
-	// Synthetic 30 Hz meter frames so the meters animate in dev. Two
-	// out-of-phase sine waves on each of in/out L/R, plus a couple of
-	// bargraph values that mirror sin/cos.
 	const tick = (): void => {
 		const tSec = (performance.now() - devStartedAtMs) / 1000;
 		const value01 = (theta: number): number => 0.5 * (Math.sin(theta) + 1);
@@ -295,8 +252,6 @@ const startDevLoop = (): void => {
 	setInterval(tick, 33);
 };
 
-// Module-level dev slot store. Keyed by slot id (e.g. `slot.f.001`).
-// Initialised from the schema on first dev compile.
 const devFloatSlots = new Map<string, number>();
 const devBoolSlots = new Map<string, boolean>();
 
@@ -333,9 +288,6 @@ const seedDevSlotsFromSchema = (schema: CrucibleSchemaRoot): void => {
 	walk(schema.ui);
 };
 
-// -----------------------------------------------------------------
-// Install the C++ → JS callback slots (host path only).
-// -----------------------------------------------------------------
 
 let installedHostCallbacks = false;
 
@@ -359,11 +311,6 @@ const installHostCallbacks = (): void => {
 	};
 
 	api.onInputError = (error: CrucibleInputError): void => {
-		// Replace the most-recent error of the same kind so the indicator
-		// tooltip surfaces the freshest message. Always-non-empty during
-		// an active error condition; cleared by the consumer on dismiss
-		// or by a successful compile (which is observed in
-		// `useInputErrors`'s effect chain).
 		activeInputErrors = [...activeInputErrors.filter((existing) => existing.kind !== error.kind), error];
 
 		for (const listener of inputErrorListeners) listener(activeInputErrors);
@@ -374,8 +321,6 @@ const installHostCallbacks = (): void => {
 	};
 
 	api.onMeterFrame = (frame: CrucibleMeterFrame): void => {
-		// Mutate in place so the ref-based subscription in `useMeterFrame`
-		// doesn't allocate per tick.
 		latestMeterFrame.inL_rms = frame.inL_rms;
 		latestMeterFrame.inR_rms = frame.inR_rms;
 		latestMeterFrame.inL_peak = frame.inL_peak;
@@ -392,10 +337,6 @@ const installHostCallbacks = (): void => {
 	installedHostCallbacks = true;
 };
 
-// Click-on-top: emit `crucible.uiClicked` on every pointerdown /
-// mousedown so the C++ side can raise the plugin window in the host's
-// z-order. Matches gain-shaper's pattern; C++ adds the AttachThreadInput
-// dance around SetForegroundWindow per the documented Win32 workaround.
 let uiClickListenerInstalled = false;
 const installUiClickListener = (): void => {
 	if (uiClickListenerInstalled || typeof window === "undefined") return;
@@ -408,11 +349,6 @@ const installUiClickListener = (): void => {
 
 		if (!backend) return;
 
-		// Clicks inside the code editor (or any text field) must NOT raise/
-		// refocus the host holder window: focusPluginHolder's SetFocus moves
-		// Win32 keyboard focus off WebView2, blurring the caret WebView2 just
-		// placed — so typing and paste fail in the DAW. Let the editor keep
-		// focus; other surfaces (header, knobs) still trigger click-on-top.
 		const target = event.target;
 
 		if (
@@ -434,37 +370,8 @@ const installUiClickListener = (): void => {
 	window.addEventListener("mousedown", handler, { capture: true });
 };
 
-// -----------------------------------------------------------------
-// Keyboard routing — JS-side decision, C++-side PostMessage forward.
-// -----------------------------------------------------------------
-//
-// WebView2 grabs Win32 keyboard focus when the user clicks any non-
-// input element in the webview, and keeps it until clicked away.
-// Microsoft's `AllowHostInputProcessing` (Aug 2025) only forwards
-// Tab / Esc / Alt-accelerators — not arrow keys, letter keys, or
-// transport shortcuts. JUCE 8.0.12 has no API to disable WebView2's
-// focus capture either.
-//
-// Workaround: capture keydown/keyup at window-capture phase and
-// decide who should handle each event:
-//   1. Focus is inside CodeMirror's editable surface (`.cm-content`)
-//      → consume locally. The Faust source editor needs every keystroke.
-//   2. Focus is anywhere else inside the webview, key is a clipboard
-//      shortcut (Ctrl+C/V/X/A/Z/Y) → consume locally. Lets the
-//      browser's default selection/clipboard work for the source
-//      buffer when nothing is focused.
-//   3. Anything else → preventDefault + stopPropagation, emit
-//      `crucible.forwardKey` to C++ which `PostMessage`s the
-//      synthesized WM_KEYDOWN / WM_KEYUP to the DAW's top-level HWND.
-//      Arrow keys for FL's piano roll, spacebar for transport, etc.
 
-// Browser KeyboardEvent.code → Windows Virtual Key code (VK_*).
-// Covers the keys a DAW host typically uses: letters, digits, function
-// keys, arrows, transport, navigation, modifiers. Numpad / symbol keys
-// fall back to keyCode-from-letter heuristic; anything unmapped
-// returns 0 and the event is consumed locally rather than forwarded.
 const codeToVk: Record<string, number> = {
-	// Letters
 	KeyA: 0x41,
 	KeyB: 0x42,
 	KeyC: 0x43,
@@ -491,7 +398,6 @@ const codeToVk: Record<string, number> = {
 	KeyX: 0x58,
 	KeyY: 0x59,
 	KeyZ: 0x5a,
-	// Digits
 	Digit0: 0x30,
 	Digit1: 0x31,
 	Digit2: 0x32,
@@ -502,7 +408,6 @@ const codeToVk: Record<string, number> = {
 	Digit7: 0x37,
 	Digit8: 0x38,
 	Digit9: 0x39,
-	// Function keys
 	F1: 0x70,
 	F2: 0x71,
 	F3: 0x72,
@@ -515,7 +420,6 @@ const codeToVk: Record<string, number> = {
 	F10: 0x79,
 	F11: 0x7a,
 	F12: 0x7b,
-	// Navigation & control
 	ArrowLeft: 0x25,
 	ArrowUp: 0x26,
 	ArrowRight: 0x27,
@@ -532,7 +436,6 @@ const codeToVk: Record<string, number> = {
 	End: 0x23,
 	PageUp: 0x21,
 	PageDown: 0x22,
-	// Modifiers
 	ShiftLeft: 0xa0,
 	ShiftRight: 0xa1,
 	ControlLeft: 0xa2,
@@ -541,7 +444,6 @@ const codeToVk: Record<string, number> = {
 	AltRight: 0xa5,
 	MetaLeft: 0x5b,
 	MetaRight: 0x5c,
-	// Punctuation that's common in transport shortcuts
 	Minus: 0xbd,
 	Equal: 0xbb,
 	BracketLeft: 0xdb,
@@ -553,7 +455,6 @@ const codeToVk: Record<string, number> = {
 	Period: 0xbe,
 	Slash: 0xbf,
 	Backslash: 0xdc,
-	// Numpad
 	Numpad0: 0x60,
 	Numpad1: 0x61,
 	Numpad2: 0x62,
@@ -571,9 +472,6 @@ const codeToVk: Record<string, number> = {
 	NumpadDivide: 0x6f,
 };
 
-// Keys whose `KeyboardEvent.code` should carry the "extended" flag in
-// WM_KEYDOWN's lParam (bit 24). Right-side modifiers, the navigation
-// cluster, the arrow keys, the numpad enter+divide.
 const extendedKeys = new Set<string>([
 	"ArrowLeft",
 	"ArrowUp",
@@ -600,7 +498,6 @@ const isInEditor = (target: EventTarget | null): boolean => {
 
 	if (target.closest('[contenteditable=""], [contenteditable="true"]')) return true;
 
-	// CodeMirror 6 editable surface
 	if (target.closest(".cm-content")) return true;
 
 	return false;
@@ -627,18 +524,13 @@ const installKeyForwarder = (): void => {
 
 		if (!backend) return;
 
-		// Editor or any other input field: webview consumes.
 		if (isInEditor(event.target ?? document.activeElement)) return;
 
-		// GUI focused, clipboard shortcut: webview consumes (no-op when
-		// nothing's selected, but lets the user copy/paste source code).
 		if (isClipboardShortcut(event)) return;
 
 		const vk = codeToVk[event.code];
 
 		if (vk === undefined || vk === 0) {
-			// Unknown key — don't consume, don't forward. Better to no-op
-			// than to swallow a key we can't translate.
 			return;
 		}
 
@@ -661,14 +553,7 @@ const installKeyForwarder = (): void => {
 	window.addEventListener("keyup", handler, { capture: true });
 };
 
-// Module-load side effects moved to the bottom of the file so they
-// run after every `export const` initializer. Putting them here while
-// `requestReplayState` was defined later in source order hit the
-// const temporal dead zone — bundle parse threw, React never mounted.
 
-// -----------------------------------------------------------------
-// Compile-result / source / errors / meters — public hooks
-// -----------------------------------------------------------------
 
 export const useCompileResult = (): CrucibleCompileResult | null => {
 	const [result, setResult] = useState<CrucibleCompileResult | null>(latestCompileResult);
@@ -680,7 +565,6 @@ export const useCompileResult = (): CrucibleCompileResult | null => {
 
 		compileResultListeners.add(listener);
 
-		// Catch up to any result that landed between module init and mount.
 		if (latestCompileResult !== null) setResult(latestCompileResult);
 
 		return () => {
@@ -722,8 +606,6 @@ export const useInputErrors = (): Array<CrucibleInputError> => {
 		inputErrorListeners.add(listener);
 		setErrors(activeInputErrors);
 
-		// A successful compile clears the channel — easier to track here
-		// than to plumb a `clearInputErrors` event from C++.
 		const compileListener: CompileResultListener = (result) => {
 			if (result?.success === true && activeInputErrors.length > 0) {
 				activeInputErrors = [];
@@ -744,7 +626,6 @@ export const useInputErrors = (): Array<CrucibleInputError> => {
 };
 
 export interface MeterFrameSubscription {
-	/** Mutated in place at 30 Hz — read inside a `requestAnimationFrame` loop. */
 	frameRef: React.RefObject<CrucibleMeterFrame>;
 }
 
@@ -772,14 +653,7 @@ export const useVariant = (): "fx" | "instrument" => {
 	return variant;
 };
 
-// -----------------------------------------------------------------
-// Slot hooks — `slot.f.NNN` (float) and `slot.b.NNN` (bool).
-// -----------------------------------------------------------------
 
-// Lazy load JUCE's vendored frontend package on first slot subscription.
-// The package's top-level script accesses `window.__JUCE__` so it must
-// not run under `npm run start` — the dynamic import bundles it as a
-// separate Vite chunk that's never requested in dev.
 let frontendPromise: Promise<JuceFrontend> | null = null;
 const loadFrontend = async (): Promise<JuceFrontend> => {
 	if (frontendPromise) return frontendPromise;
@@ -855,7 +729,6 @@ export const useFloatSlot = (index: number): FloatSlotBinding => {
 			};
 		}
 
-		// Dev path: subscribe to module-level slot state.
 		setValueLocal(devFloatSlots.get(slotId) ?? 0);
 
 		return subscribeDevSlot(slotId, () => {
@@ -948,9 +821,6 @@ export const useBoolSlot = (index: number): BoolSlotBinding => {
 	return { value, setValue };
 };
 
-// Read a bargraph slot's *value*, ref-based — bargraph values arrive
-// at 30 Hz inside `MeterFrame.bargraphs`, indexed by the slot's
-// numeric suffix.
 export const readBargraphSlot = (frame: CrucibleMeterFrame, slotId: string): number => {
 	const match = /^slot\.m\.(\d+)$/.exec(slotId);
 	const digits = match?.[1];
@@ -962,9 +832,6 @@ export const readBargraphSlot = (frame: CrucibleMeterFrame, slotId: string): num
 	return frame.bargraphs[index] ?? 0;
 };
 
-// -----------------------------------------------------------------
-// Request methods (JS → C++ via `juce.emitEvent`)
-// -----------------------------------------------------------------
 
 const emitEvent = (eventId: string, payload: unknown): void => {
 	if (typeof window === "undefined") return;
@@ -988,16 +855,10 @@ export const requestCopyContext = (): void => {
 	emitEvent("crucible.copyContextRequest", {});
 };
 
-// Clipboard through C++ juce::SystemClipboard rather than the browser
-// `navigator.clipboard` API, which fails in WebView2 once the click-on-
-// top handler moves Win32 focus off the webview (the copy/paste buttons
-// aren't in the editor, so their click still raises the host window).
 export const requestCopyToClipboard = (text: string): void => {
 	emitEvent("crucible.copyToClipboard", { text });
 };
 
-// Ask C++ to read the system clipboard; it replies via
-// `window.crucible.onClipboardPaste`, fanned out to subscribers.
 export const requestPaste = (): void => {
 	emitEvent("crucible.pasteRequest", {});
 };
@@ -1011,8 +872,6 @@ export const subscribeClipboardPaste = (listener: (text: string) => void): (() =
 };
 
 export const notifyEditorBufferChange = (buffer: string): void => {
-	// Mirror the buffer into the dev cache so the SAVE / COPY paths
-	// round-trip cleanly without a JUCE host.
 	if (!isJuceHost()) {
 		latestSourceChanged = { source: buffer, path: latestSourceChanged?.path ?? "<dev>" };
 	}
@@ -1020,17 +879,10 @@ export const notifyEditorBufferChange = (buffer: string): void => {
 	emitEvent("crucible.editorBufferChanged", { buffer });
 };
 
-// Trigger an in-memory compile of the working buffer (no disk write).
-// Called from the InputPanel after a debounce window of editor idle —
-// pairs with `notifyEditorBufferChange` (which fires every keystroke
-// for SAVE-As default + close/reopen restore).
 export const requestCompileBuffer = (buffer: string): void => {
 	emitEvent("crucible.compileBufferRequest", { buffer });
 };
 
-// Ask C++ to re-emit the current editor state (last source + last
-// compile result) so a freshly-mounted webview catches up to the
-// processor's persistent state. Called once on host-callback install.
 export const requestReplayState = (): void => {
 	emitEvent("crucible.replayStateRequest", {});
 };
@@ -1043,18 +895,11 @@ export const notifyUiClicked = (): void => {
 	emitEvent("crucible.uiClicked", {});
 };
 
-// Module-load side effects: install the callback slots if we're in a
-// JUCE host, otherwise kick off the dev loop. Must run AFTER every
-// `export const` above so it can see the request* helpers — putting
-// this block earlier hits the `const` temporal dead zone and aborts
-// bundle parse.
 if (typeof window !== "undefined") {
 	if (isJuceHost()) {
 		installHostCallbacks();
 		installUiClickListener();
 		installKeyForwarder();
-		// Ask C++ to replay its current state so a webview re-mount after
-		// editor close/reopen catches up to the persistent processor.
 		requestReplayState();
 	} else {
 		startDevLoop();

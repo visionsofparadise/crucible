@@ -4,8 +4,6 @@ import Header from "./Header";
 import InputPanel from "./InputPanel";
 import WorkspacePanel from "./WorkspacePanel";
 
-// Band heights (62 + 2 + 334 + 2 + 344) sum to 744; both PluginEditor.cpp files
-// pass setSize(680, 744). Changing any height here requires changing that sum in both.
 const FRAME_SHADOW =
 	"0 30px 70px rgba(0,0,0,0.6), 0 2px 0 rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.07)";
 const HEADER_SEAM =

@@ -44,7 +44,6 @@ export const useContinuousMetal = (frameRef: React.RefObject<HTMLElement | null>
 		const observer = new ResizeObserver(apply);
 
 		observer.observe(frame);
-		// Webfonts can shift row heights after first paint; re-align once they settle.
 		void document.fonts.ready.then(apply);
 
 		return () => {

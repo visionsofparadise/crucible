@@ -49,13 +49,6 @@ const editorTheme = EditorView.theme(
 			backgroundColor: "transparent",
 			fontFamily: "var(--font-mono)",
 			lineHeight: "1.6",
-			// The scroller is a flex item in the flex-column .cm-editor; it
-			// defaults to flex-grow:0 and shrinks to content height, leaving
-			// the empty lower area outside the editable/clickable surface.
-			// Grow it to fill the fixed-height editor (minHeight:0 lets it
-			// shrink for internal scrolling when the doc overflows). Override
-			// CM's base `align-items: flex-start !important` so the content
-			// stretches to the full height and the whole surface is clickable.
 			flexGrow: 1,
 			minHeight: 0,
 			alignItems: "stretch !important",
@@ -64,8 +57,6 @@ const editorTheme = EditorView.theme(
 			backgroundColor: "transparent",
 			caretColor: "var(--color-accent-primary)",
 			padding: "8px 0",
-			// Fill the fixed-height screen so the whole surface is editable
-			// and clickable even when the document is empty or short.
 			minHeight: "100%",
 			textShadow:
 				"0 0 7px color-mix(in srgb, var(--color-accent-primary) 22%, transparent), 0 0 4px rgba(232,227,219,0.28)",
@@ -213,11 +204,7 @@ const InputPanel = () => {
 			syntaxHighlighting(editorHighlight),
 			lintGutter(),
 			linter(() => []),
-			// Wrap long lines to the editor width — the plugin window is a fixed
-			// size and must never scroll horizontally (layout-stability rule).
 			EditorView.lineWrapping,
-			// Paste overwrites the whole buffer: this editor holds one Faust
-			// program, so a paste is "load this program", not "insert a snippet".
 			EditorView.domEventHandlers({
 				paste: (event, view) => {
 					const text = event.clipboardData?.getData("text") ?? "";
@@ -235,9 +222,6 @@ const InputPanel = () => {
 	const errorIconVisible = inputErrors.length > 0;
 	const tooltipMessage = errorIconVisible ? (inputErrors[inputErrors.length - 1]?.message ?? "") : "";
 
-	// Overwrite the whole editor buffer. When the view exists its dispatch
-	// fires onChange (→ notify + compile); the fallback covers the rare
-	// pre-mount case.
 	const overwriteEditor = useCallback(
 		(text: string) => {
 			const view = editorRef.current?.view;
@@ -252,7 +236,6 @@ const InputPanel = () => {
 		[scheduleCompile],
 	);
 
-	// C++ replies to a paste request through this channel.
 	useEffect(() => subscribeClipboardPaste(overwriteEditor), [overwriteEditor]);
 
 	const onCopy = useCallback(() => {

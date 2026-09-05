@@ -5,7 +5,6 @@ export interface BarcodeProps extends Omit<React.ComponentPropsWithRef<"div">, "
 	height?: number;
 	gap?: number;
 	color?: string;
-	/** 'horizontal' (default) renders bars side-by-side; 'vertical' stacks them top-to-bottom. */
 	direction?: "horizontal" | "vertical";
 }
 

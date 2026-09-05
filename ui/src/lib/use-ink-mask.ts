@@ -29,8 +29,6 @@ export const useInkMask = (titleRef: React.RefObject<HTMLElement | null>, streng
 
 				const source = context.getImageData(0, 0, width, height).data;
 
-				// Smoothstep the luminance across [0.16, 0.48] into an erosion factor,
-				// then write it as inverse alpha into a white RGBA mask.
 				const threshold0 = 0.16;
 				const threshold1 = 0.48;
 				const smooth = (input: number): number => {
@@ -58,7 +56,6 @@ export const useInkMask = (titleRef: React.RefObject<HTMLElement | null>, streng
 
 				const maskUrl = `url(${canvas.toDataURL("image/png")})`;
 
-				// `-webkit-` mask aliases are still required by the WebView2/WKWebView backends.
 				const style = element.style;
 
 				style.setProperty("mask-image", maskUrl);
@@ -68,7 +65,6 @@ export const useInkMask = (titleRef: React.RefObject<HTMLElement | null>, streng
 				style.setProperty("mask-repeat", "no-repeat");
 				style.setProperty("-webkit-mask-repeat", "no-repeat");
 			} catch {
-				// Canvas is tainted or unavailable — leave the wordmark unmasked.
 			}
 		};
 

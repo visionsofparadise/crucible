@@ -14,11 +14,6 @@ const labelChildren = (group: CrucibleGroupSchema): Array<{ label: string; group
 	return groups.map((entry) => ({ label: entry.label, group: entry }));
 };
 
-// Recursive group renderer. Hierarchy:
-//   vgroup / hgroup → label + indented children (group label rows
-//     followed by inline control rows, mirroring the design's `Group`).
-//   tgroup → button-select switcher over child groups; only the active
-//     sub-group's children render below.
 
 interface DynamicGroupProps {
 	group: CrucibleGroupSchema;

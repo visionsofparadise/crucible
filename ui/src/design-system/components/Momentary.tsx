@@ -4,7 +4,6 @@ import { cn } from "../cn";
 
 interface MomentaryProps {
 	label: string;
-	/** Called once on press, then again with `false` after `releaseAfterMs`. */
 	onTrigger?: () => void;
 	/** Called when the value should drop back to false. Used by callers that
 	 *  want to drive a `slot.b.NNN` write directly (true on press, false a

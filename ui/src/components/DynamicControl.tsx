@@ -10,8 +10,6 @@ import { formatDb } from "../lib/db";
 import { formatDisplay } from "../lib/format";
 import type { CrucibleControlSchema } from "../lib/juce";
 
-// Slot id helpers — `slot.f.012` → 12. Returns -1 if the id is empty
-// (over-budget control, unbound).
 const slotIndex = (slotId: string): number => {
 	const match = /^slot\.[fbm]\.(\d+)$/.exec(slotId);
 	const digits = match?.[1];
@@ -21,9 +19,6 @@ const slotIndex = (slotId: string): number => {
 	return Number.parseInt(digits, 10);
 };
 
-// Parse `menu{label1:value1;label2:value2}` / `radio{...}` into an
-// ordered list of `{label, value}`. The metadata string preserves
-// the order the user declared in the Faust source.
 interface StyleOption {
 	label: string;
 	value: number;
@@ -57,8 +52,6 @@ const parseStyleOptions = (styleMeta: string | undefined): Array<StyleOption> =>
 		.filter((option): option is StyleOption => option !== null);
 };
 
-// Map a raw (normalised 0..1) slot value back to one of the style
-// options by nearest-value match. Used for dropdown / radio display.
 const optionForSlot = (
 	options: Array<StyleOption>,
 	control: CrucibleControlSchema,
@@ -97,10 +90,6 @@ const normaliseFromValue = (control: CrucibleControlSchema, value: number): numb
 	return Math.max(0, Math.min(1, (value - control.min) / range));
 };
 
-// Per-leaf component. Each renders its own primitive bound to the
-// appropriate slot via `useFloatSlot` / `useBoolSlot`. Slot id parsing
-// happens once at the leaf level so the bridge hooks receive numeric
-// indices.
 
 const FloatKnobControl = ({ control }: { control: CrucibleControlSchema }) => {
 	const index = slotIndex(control.slotId);
@@ -181,9 +170,6 @@ const MomentaryControl = ({ control }: { control: CrucibleControlSchema }) => {
 	return <Momentary label={control.label} onChange={index < 0 ? undefined : slot.setValue} />;
 };
 
-// Bargraph readings are pushed at 30 Hz via the meter frame; subscribe
-// ref-style and drive the meter's display via DOM mutation so the
-// component does not re-render on every tick.
 const HBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
 	const { frameRef } = useMeterFrame();
 	const barRef = useRef<HTMLDivElement | null>(null);
@@ -268,8 +254,6 @@ interface DynamicControlProps {
 	control: CrucibleControlSchema;
 }
 
-// Type-dispatch the renderer. `[style:menu{...}]` and `[style:radio{...}]`
-// override `hslider`/`vslider`/`nentry`'s default knob.
 const DynamicControl = ({ control }: DynamicControlProps) => {
 	const styleMeta = control.meta.style;
 	const styleOptions = parseStyleOptions(styleMeta);

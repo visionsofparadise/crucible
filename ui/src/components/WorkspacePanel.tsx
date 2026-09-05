@@ -26,8 +26,6 @@ const WorkspacePanel = () => {
 	const [scale, setScale] = useState(1);
 	const [tx, setTx] = useState(0);
 	const [ty, setTy] = useState(0);
-	// Drill-in navigation stack. `[]` means we're on `process.svg`. Each
-	// entry is the filename of a subdiagram (e.g. `process-filter.svg`).
 	const [navStack, setNavStack] = useState<Array<string>>([]);
 
 	const resetView = useCallback((): void => {
@@ -36,8 +34,6 @@ const WorkspacePanel = () => {
 		setTy(0);
 	}, []);
 
-	// Compile result change → reset drill-in stack and pan/zoom so the
-	// user sees the root diagram of the freshly-compiled program.
 	useEffect(() => {
 		if (result?.success === true) {
 			setNavStack([]);

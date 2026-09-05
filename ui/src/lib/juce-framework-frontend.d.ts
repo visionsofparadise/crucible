@@ -1,8 +1,3 @@
-// Ambient typing for the vendored `juce-framework-frontend` package.
-// The shipped JS has no own .d.ts; we declare the surfaces the
-// crucible-bridge module consumes via dynamic `import()`. Mirrors the
-// runtime shape documented in JUCE 8's
-// `juce_gui_extra/native/javascript/index.js`.
 
 declare module "juce-framework-frontend" {
 	export interface SliderState {

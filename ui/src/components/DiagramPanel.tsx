@@ -66,15 +66,12 @@ const fetchDevSvg = (relPath: string): Promise<string> => {
 	return Promise.resolve(DEV_FILTER_SVG);
 };
 
-const fetchHostSvg = async (svgRoot: string, relPath: string): Promise<string> => {
+const fetchHostSvg = async (relPath: string): Promise<string> => {
 	const filename = relPath.length > 0 ? relPath : "process.svg";
 	const url = `/svg/${filename}`;
 	const response = await fetch(url);
 
 	if (!response.ok) throw new Error(`SVG fetch failed: ${url}`);
-
-	if (svgRoot.length === 0) {
-	}
 
 	return response.text();
 };
@@ -111,7 +108,7 @@ const DiagramPanel = ({
 		let cancelled = false;
 		const load = async (): Promise<void> => {
 			try {
-				const text = isJuceHost() ? await fetchHostSvg(svgRoot, currentPath) : await fetchDevSvg(currentPath);
+				const text = isJuceHost() ? await fetchHostSvg(currentPath) : await fetchDevSvg(currentPath);
 
 				if (!cancelled) setSvgText(deLinkAnchors(text));
 			} catch {
@@ -171,12 +168,12 @@ const DiagramPanel = ({
 
 	const DRAG_THRESHOLD_PX = 4;
 
-	const onMouseDown = (event: React.MouseEvent): void => {
+	const onPointerDown = (event: React.PointerEvent): void => {
 		suppressClickRef.current = false;
 		dragRef.current = { x: event.clientX, y: event.clientY, startTx: tx, startTy: ty, panning: false };
 	};
 
-	const onMouseMove = (event: React.MouseEvent): void => {
+	const onPointerMove = (event: React.PointerEvent): void => {
 		const drag = dragRef.current;
 
 		if (!drag) return;
@@ -193,7 +190,7 @@ const DiagramPanel = ({
 		onPanChange(drag.startTx + dx, drag.startTy + dy);
 	};
 
-	const onMouseUp = (): void => {
+	const onPointerUp = (): void => {
 		if (dragRef.current?.panning === true) suppressClickRef.current = true;
 
 		dragRef.current = null;
@@ -203,10 +200,10 @@ const DiagramPanel = ({
 		<div
 			className="diagram-svg relative z-[1] max-h-[300px] h-[300px] overflow-hidden cursor-grab active:cursor-grabbing text-text-primary"
 			onWheel={onWheel}
-			onMouseDown={onMouseDown}
-			onMouseMove={onMouseMove}
-			onMouseUp={onMouseUp}
-			onMouseLeave={onMouseUp}
+			onPointerDown={onPointerDown}
+			onPointerMove={onPointerMove}
+			onPointerUp={onPointerUp}
+			onPointerLeave={onPointerUp}
 		>
 			<style>{SVG_THEME_CSS}</style>
 			<div

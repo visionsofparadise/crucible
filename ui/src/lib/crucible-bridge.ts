@@ -875,16 +875,12 @@ export const requestCompileBuffer = (buffer: string): void => {
 	emitEvent("crucible.compileBufferRequest", { buffer });
 };
 
-export const requestReplayState = (): void => {
+const requestReplayState = (): void => {
 	emitEvent("crucible.replayStateRequest", {});
 };
 
 export const notifyDiagramNavigate = (svgRel: string): void => {
 	emitEvent("crucible.diagramNavigate", { path: svgRel });
-};
-
-export const notifyUiClicked = (): void => {
-	emitEvent("crucible.uiClicked", {});
 };
 
 if (typeof window !== "undefined") {

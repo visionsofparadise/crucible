@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import ButtonSelection from "../design-system/components/ButtonSelection";
 import Dropdown from "../design-system/components/Dropdown";
 import Knob from "../design-system/components/Knob";
@@ -107,49 +107,51 @@ const FloatKnobControl = ({ control }: { control: CrucibleControlSchema }) => {
 	);
 };
 
-const DropdownControl = ({ control, options }: { control: CrucibleControlSchema; options: Array<StyleOption> }) => {
+interface StyleOptionProps {
+	control: CrucibleControlSchema;
+	options: Array<StyleOption>;
+}
+
+interface StyleOptionBinding {
+	labels: Array<string>;
+	active: string;
+	select: (nextLabel: string) => void;
+}
+
+const useStyleOptionSlot = ({ control, options }: StyleOptionProps): StyleOptionBinding => {
 	const index = slotIndex(control.slotId);
 	const slot = useFloatSlot(Math.max(0, index));
 	const labels = options.map((option) => option.label);
 	const active = optionForSlot(options, control, slot.value)?.label ?? labels[0] ?? "";
 
+	const select = (nextLabel: string): void => {
+		const option = options.find((entry) => entry.label === nextLabel);
+
+		if (!option || index < 0) return;
+
+		slot.setValue(normaliseFromValue(control, option.value));
+	};
+
+	return { labels, active, select };
+};
+
+const DropdownControl = ({ control, options }: StyleOptionProps) => {
+	const { labels, active, select } = useStyleOptionSlot({ control, options });
+
 	return (
 		<div className="flex flex-col items-center gap-2 select-none">
-			<Dropdown
-				value={active}
-				options={labels}
-				onChange={(nextLabel) => {
-					const option = options.find((entry) => entry.label === nextLabel);
-
-					if (!option || index < 0) return;
-
-					slot.setValue(normaliseFromValue(control, option.value));
-				}}
-			/>
+			<Dropdown value={active} options={labels} onChange={select} />
 			<span className="type-control-label">{control.label}</span>
 		</div>
 	);
 };
 
-const RadioControl = ({ control, options }: { control: CrucibleControlSchema; options: Array<StyleOption> }) => {
-	const index = slotIndex(control.slotId);
-	const slot = useFloatSlot(Math.max(0, index));
-	const labels = options.map((option) => option.label);
-	const active = optionForSlot(options, control, slot.value)?.label ?? labels[0] ?? "";
+const RadioControl = ({ control, options }: StyleOptionProps) => {
+	const { labels, active, select } = useStyleOptionSlot({ control, options });
 
 	return (
 		<div className="flex flex-col items-center gap-2 select-none">
-			<ButtonSelection
-				options={labels}
-				active={active}
-				onSelect={(nextLabel) => {
-					const option = options.find((entry) => entry.label === nextLabel);
-
-					if (!option || index < 0) return;
-
-					slot.setValue(normaliseFromValue(control, option.value));
-				}}
-			/>
+			<ButtonSelection options={labels} active={active} onSelect={select} />
 			<span className="type-control-label">{control.label}</span>
 		</div>
 	);
@@ -169,23 +171,18 @@ const MomentaryControl = ({ control }: { control: CrucibleControlSchema }) => {
 	return <Momentary label={control.label} onChange={index < 0 ? undefined : slot.setValue} />;
 };
 
-const HBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
+const useBargraphFrame = (slotId: string, apply: (value: number) => void): void => {
 	const { frameRef } = useMeterFrame();
-	const barRef = useRef<HTMLDivElement | null>(null);
-	const peakLabelRef = useRef<HTMLSpanElement | null>(null);
+	const applyRef = useRef(apply);
+
+	useEffect(() => {
+		applyRef.current = apply;
+	}, [apply]);
 
 	useEffect(() => {
 		let raf = 0;
 		const tick = (): void => {
-			const value = readBargraphSlot(frameRef.current, control.slotId);
-
-			if (barRef.current) {
-				barRef.current.style.width = `${(value * 100).toString()}%`;
-			}
-
-			if (peakLabelRef.current) {
-				peakLabelRef.current.textContent = control.meta.unit === "dB" ? formatDb(value) : value.toFixed(2);
-			}
+			applyRef.current(readBargraphSlot(frameRef.current, slotId));
 
 			raf = window.requestAnimationFrame(tick);
 		};
@@ -195,7 +192,29 @@ const HBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
 		return () => {
 			window.cancelAnimationFrame(raf);
 		};
-	}, [control.slotId, control.meta.unit, frameRef]);
+	}, [slotId, frameRef]);
+};
+
+const HBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
+	const barRef = useRef<HTMLDivElement | null>(null);
+	const peakLabelRef = useRef<HTMLSpanElement | null>(null);
+	const unit = control.meta.unit;
+
+	useBargraphFrame(
+		control.slotId,
+		useCallback(
+			(value: number) => {
+				if (barRef.current) {
+					barRef.current.style.width = `${(value * 100).toString()}%`;
+				}
+
+				if (peakLabelRef.current) {
+					peakLabelRef.current.textContent = unit === "dB" ? formatDb(value) : value.toFixed(2);
+				}
+			},
+			[unit],
+		),
+	);
 
 	return (
 		<div className="flex flex-col items-center gap-2 select-none w-[150px]">
@@ -219,27 +238,16 @@ const HBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
 };
 
 const VBargraphControl = ({ control }: { control: CrucibleControlSchema }) => {
-	const { frameRef } = useMeterFrame();
 	const barRef = useRef<HTMLDivElement | null>(null);
 
-	useEffect(() => {
-		let raf = 0;
-		const tick = (): void => {
-			const value = readBargraphSlot(frameRef.current, control.slotId);
-
+	useBargraphFrame(
+		control.slotId,
+		useCallback((value: number) => {
 			if (barRef.current) {
 				barRef.current.style.height = `${(value * 100).toString()}%`;
 			}
-
-			raf = window.requestAnimationFrame(tick);
-		};
-
-		raf = window.requestAnimationFrame(tick);
-
-		return () => {
-			window.cancelAnimationFrame(raf);
-		};
-	}, [control.slotId, frameRef]);
+		}, []),
+	);
 
 	return (
 		<div className="flex flex-col items-center gap-2 select-none">

@@ -1,4 +1,4 @@
-import type { IconProps } from "./PrimaryIcon";
+import type { IconProps } from "./iconProps";
 
 const DotCircleIcon = ({ color, size = 32, className, ref, style, ...rest }: IconProps) => (
 	<div ref={ref} className={className} style={style} {...rest}>

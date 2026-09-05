@@ -1,4 +1,4 @@
-export interface JuceListenerHandle {
+interface JuceListenerHandle {
 	addListener: (callback: () => void) => number;
 	removeListener: (id: number) => void;
 }
@@ -17,7 +17,7 @@ export interface JuceToggleState {
 	valueChangedEvent: JuceListenerHandle;
 }
 
-export interface JuceComboBoxState {
+interface JuceComboBoxState {
 	getChoiceIndex: () => number;
 	setChoiceIndex: (next: number) => void;
 	valueChangedEvent: JuceListenerHandle;
@@ -29,15 +29,15 @@ export interface JuceFrontend {
 	getComboBoxState: (name: string) => JuceComboBoxState;
 }
 
-export interface JuceBackend {
+interface JuceBackend {
 	emitEvent: (eventId: string, payload: unknown) => void;
 }
 
-export interface JuceRoot {
+interface JuceRoot {
 	backend?: JuceBackend;
 }
 
-export interface CrucibleControlMeta {
+interface CrucibleControlMeta {
 	[key: string]: string;
 }
 
@@ -107,7 +107,7 @@ export interface CrucibleMeterFrame {
 	bargraphs: Array<number>;
 }
 
-export interface CrucibleWindowAPI {
+interface CrucibleWindowAPI {
 	variant?: "fx" | "instrument";
 	onCompileResult?: (result: CrucibleCompileResult) => void;
 	onSourceChanged?: (event: CrucibleSourceChanged) => void;

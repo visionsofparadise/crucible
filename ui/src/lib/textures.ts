@@ -3,8 +3,9 @@ import glassUrl from "../assets/textures/glass.jpg";
 import inkUrl from "../assets/textures/ink.jpg";
 import metalUrl from "../assets/textures/metal.jpg";
 
-export const metalTextureUrl = metalUrl;
-export const glassTextureUrl = glassUrl;
+const metalTextureUrl = metalUrl;
+const glassTextureUrl = glassUrl;
+
 export const inkTextureUrl = inkUrl;
 
 export const INK_STRENGTH = 0.7;

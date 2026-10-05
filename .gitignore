@@ -21,6 +21,7 @@ ui/dist/
 Thumbs.db
 
 # Scratch / build-debugging
+.scratch/
 scratch/
 _*.bat
 _*.log

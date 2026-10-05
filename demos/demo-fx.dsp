@@ -1,0 +1,10 @@
+import("stdfaust.lib");
+cutoff = hslider("filter/cutoff[scale:log][unit:Hz]", 1200, 50, 12000, 1);
+q = hslider("filter/resonance", 1, 0.5, 10, 0.01);
+mode = hslider("filter/type[style:radio{'LP':0;'HP':1}]", 0, 0, 1, 1);
+level = hbargraph("out level[unit:dB]", -60, 0);
+lp = fi.resonlp(cutoff, q, 1);
+hp = fi.resonhp(cutoff, q, 1);
+sel = _ <: lp, hp : select2(mode);
+meter = _ <: attach(_, abs : ba.linear2db : level);
+process = sel * hslider("gain", 0.7, 0, 1, 0.01) : meter <: _,_;

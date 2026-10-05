@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex;flex-direction:column;align-items:center;gap:5px;user-select:none">
+  <span style="font-size:10px;letter-spacing:0.04em;color:#E8E3DB;font-variant-numeric:tabular-nums;text-align:center;display:inline-block;min-width:7ch">{{ display }}</span>
+  <svg width="24" height="24" viewBox="0 0 24 24">
+    <path d="{{ trackPath }}" transform="translate(0 1)" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" stroke-linecap="butt"></path>
+    <path d="{{ trackPath }}" fill="none" stroke="#100E0B" stroke-width="1.5" stroke-linecap="butt"></path>
+    <path d="{{ fgPath }}" fill="none" stroke="#E8E3DB" stroke-width="1.5" stroke-linecap="butt"></path>
+  </svg>
+  <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:#7A7570">{{ label }}</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:48,&quot;height&quot;:62},&quot;value&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.5,&quot;min&quot;:0,&quot;max&quot;:1,&quot;step&quot;:0.01,&quot;tsType&quot;:&quot;number&quot;},&quot;display&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;50&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;label&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;KNOB&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const v = Math.max(0, Math.min(1, this.props.value ?? 0));
+    const size = 24, r = (size - 4) / 2, cx = size / 2, cy = size / 2;
+    const polar = (a) => {
+      const rad = (a * Math.PI) / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    };
+    const arc = (start, sweep) => {
+      if (sweep <= 0) return "";
+      const end = start + sweep;
+      const sp = polar(start), ep = polar(end);
+      const large = sweep > 180 ? 1 : 0;
+      return `M ${sp.x.toFixed(2)} ${sp.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${ep.x.toFixed(2)} ${ep.y.toFixed(2)}`;
+    };
+    return {
+      display: this.props.display ?? String(Math.round(v * 100)),
+      label: this.props.label ?? "",
+      trackPath: arc(135, 270),
+      fgPath: arc(135, 270 * v),
+    };
+  }
+}
+</script>
+</body>
+</html>

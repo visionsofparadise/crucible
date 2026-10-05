@@ -103,7 +103,7 @@ respectively.
 ## Repository layout
 
 ```
-code/
+crucible/
 ├── CMakeLists.txt        Top-level: JUCE FetchContent, options, UI build orchestration.
 ├── CMakePresets.json     Windows / macOS / Linux Debug + Release matrix.
 ├── Core/                 CrucibleCore static library (shared by both plugin variants).
@@ -170,7 +170,7 @@ above already cover the supported platforms.
 
 ### Configure and build
 
-From the `code/` directory (this folder):
+From the repository root:
 
 ```
 cmake --preset windows-release
@@ -188,7 +188,7 @@ several minutes on a cold network.
 
 The `*-debug` presets set `CRUCIBLE_UI_DEV_SERVER=ON`, pointing both
 plugins' `WebBrowserComponent` at `http://localhost:5173`. Start the
-Vite dev server separately (`cd code/ui && npm run start`) before
+Vite dev server separately (`cd ui && npm run start`) before
 launching the plugin in debug mode.
 
 ### Tests

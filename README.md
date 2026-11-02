@@ -43,5 +43,6 @@ Proprietary, all rights reserved. See [LICENSE](LICENSE).
 Crucible includes these third-party components:
 
 - **JUCE 8**, under its Personal license.
-- **libfaust**, under GPLv2 with a runtime linking exception that permits linking it into proprietary applications.
+- **libfaust** by GRAME and INRIA, under the GNU Lesser General Public License 2.1 or later.
 - **LLVM**, bundled inside libfaust, under the Apache License 2.0 with LLVM exceptions.
+- **The Faust standard libraries**, bundled verbatim under the licenses each file and function declares.

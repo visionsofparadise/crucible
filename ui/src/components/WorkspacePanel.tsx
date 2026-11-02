@@ -117,9 +117,18 @@ const WorkspacePanel = () => {
 							textTransform: "uppercase",
 							letterSpacing: "0.06em",
 							color: "var(--color-text-secondary)",
+							whiteSpace: "nowrap",
 						}}
 					>
-						©&nbsp;ZCROSS
+						©&nbsp;ZCROSS · Faust&nbsp;©&nbsp;GRAME,&nbsp;INRIA ·{" "}
+						<a
+							href="https://github.com/visionsofparadise/crucible#license"
+							target="_blank"
+							rel="noopener noreferrer"
+							style={{ color: "inherit", textDecoration: "underline" }}
+						>
+							Licenses
+						</a>
 					</span>
 				</div>
 			</div>

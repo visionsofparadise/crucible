@@ -3,7 +3,8 @@
 #
 # Invoked by the GitHub Actions release workflow after a successful Linux
 # build. Assembles `Crucible FX.vst3`, `Crucible Instrument.vst3`, both
-# Standalone binaries, and the user-facing install.sh into a flat (no
+# Standalone binaries, the licence and third-party notices, and the
+# user-facing install.sh into a flat (no
 # top-level wrapper directory) tarball at
 # dist/Crucible-${VERSION}-linux-x64.tar.gz.
 #
@@ -39,6 +40,7 @@ cp -R "$INSTRUMENT_BUILD_DIR/VST3/Crucible Instrument.vst3" "$STAGE_DIR/"
 cp "$FX_BUILD_DIR/Standalone/Crucible FX" "$STAGE_DIR/"
 cp "$INSTRUMENT_BUILD_DIR/Standalone/Crucible Instrument" "$STAGE_DIR/"
 cp "$REPO_ROOT/installers/linux/install.sh" "$STAGE_DIR/"
+cp "$REPO_ROOT/LICENSE" "$REPO_ROOT/THIRD-PARTY-NOTICES.txt" "$STAGE_DIR/"
 
 # Defensive: the source executable bit on install.sh might not survive a
 # Windows-side checkout, and the Standalone binary's bit depends on the

@@ -46,6 +46,9 @@ Source: "..\..\build\windows-release\Instrument\CrucibleInstrument_artefacts\Rel
 ; Standalone executables go into the per-product Program Files folder.
 Source: "..\..\build\windows-release\FX\CrucibleFX_artefacts\Release\Standalone\Crucible FX.exe"; DestDir: "{app}"
 Source: "..\..\build\windows-release\Instrument\CrucibleInstrument_artefacts\Release\Standalone\Crucible Instrument.exe"; DestDir: "{app}"
+; Licence and third-party notices, next to the Standalone executables.
+Source: "..\..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"
+Source: "..\..\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"
 
 [Icons]
 Name: "{group}\Crucible FX"; Filename: "{app}\Crucible FX.exe"

@@ -33,8 +33,9 @@ done
 
 VST3_DEST="$HOME/.vst3"
 BIN_DEST="$HOME/.local/bin"
+DOC_DEST="$HOME/.local/share/doc/crucible"
 
-mkdir -p "$VST3_DEST" "$BIN_DEST"
+mkdir -p "$VST3_DEST" "$BIN_DEST" "$DOC_DEST"
 
 cp -R "$FX_VST3_SRC" "$VST3_DEST/"
 cp -R "$INSTRUMENT_VST3_SRC" "$VST3_DEST/"
@@ -42,11 +43,13 @@ cp "$FX_STANDALONE_SRC" "$BIN_DEST/crucible-fx"
 cp "$INSTRUMENT_STANDALONE_SRC" "$BIN_DEST/crucible-instrument"
 chmod +x "$BIN_DEST/crucible-fx"
 chmod +x "$BIN_DEST/crucible-instrument"
+cp "$SCRIPT_DIR/LICENSE" "$SCRIPT_DIR/THIRD-PARTY-NOTICES.txt" "$DOC_DEST/"
 
 echo "Crucible installed:"
 echo "  VST3 (FX):         $VST3_DEST/Crucible FX.vst3"
 echo "  VST3 (Instrument): $VST3_DEST/Crucible Instrument.vst3"
 echo "  Standalone (FX):         $BIN_DEST/crucible-fx"
 echo "  Standalone (Instrument): $BIN_DEST/crucible-instrument"
+echo "  Licence and notices:     $DOC_DEST"
 echo
 echo "Note: '$BIN_DEST' may need to be on your PATH for the standalones to run from any shell."

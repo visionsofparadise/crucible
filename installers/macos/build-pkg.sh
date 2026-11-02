@@ -59,6 +59,12 @@ cp -R "${FX_BUILD_DIR}/VST3/Crucible FX.vst3" \
 cp -R "${INSTRUMENT_BUILD_DIR}/VST3/Crucible Instrument.vst3" \
   "${PAYLOAD_VST3}/Library/Audio/Plug-Ins/VST3/Crucible Instrument.vst3"
 
+# Licence and third-party notices install beside the plugins rather than
+# inside the bundles, whose ad-hoc signatures seal their contents.
+mkdir -p "${PAYLOAD_VST3}/Library/Application Support/ZCROSS/Crucible"
+cp "${REPO_ROOT}/LICENSE" "${REPO_ROOT}/THIRD-PARTY-NOTICES.txt" \
+  "${PAYLOAD_VST3}/Library/Application Support/ZCROSS/Crucible/"
+
 # --- Stage Standalone .app payload (both variants) -----------------------
 echo "==> Staging Standalone .app payload"
 rm -rf "${PAYLOAD_APP}"
@@ -123,6 +129,7 @@ mkdir -p "${DIST_DIR}"
 rm -rf "${DMG_STAGING}"
 mkdir -p "${DMG_STAGING}"
 cp "${PRODUCT_PKG}" "${DMG_STAGING}/Crucible.pkg"
+cp "${REPO_ROOT}/LICENSE" "${REPO_ROOT}/THIRD-PARTY-NOTICES.txt" "${DMG_STAGING}/"
 
 # Overwrite any existing dmg of the same name; UDZO = compressed read-only.
 hdiutil create \
